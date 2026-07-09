@@ -1,0 +1,9 @@
+{
+  "chatlookup.search": "Chat search",
+  "chatlookup.search.hint": "Search...",
+  "chatlookup.matches": "%s/%s",
+  "chatlookup.copied.title": "Message copied!",
+  "chatlookup.regex.tooltip": "Regex mode",
+  "chatlookup.regex.invalid": "invalid regex",
+  "chatlookup.highlight.tooltip": "Highlight matches in chat"
+}

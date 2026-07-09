@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.safhy.chatlookup.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ChatHudAccessor",
+    "ChatHudMixin",
+    "ChatScreenMixin",
+    "InGameHudMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "chatlookup.search": "Wyszukiwanie na czacie",
+  "chatlookup.search.hint": "Szukaj...",
+  "chatlookup.matches": "%s/%s",
+  "chatlookup.copied.title": "Skopiowano wiadomość!",
+  "chatlookup.regex.tooltip": "Tryb regex",
+  "chatlookup.regex.invalid": "błędny regex",
+  "chatlookup.highlight.tooltip": "Podświetlaj trafienia na czacie"
+}
