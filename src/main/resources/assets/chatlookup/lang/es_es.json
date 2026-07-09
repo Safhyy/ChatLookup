@@ -1,0 +1,9 @@
+{
+  "chatlookup.search": "Búsqueda en el chat",
+  "chatlookup.search.hint": "Buscar...",
+  "chatlookup.matches": "%s/%s",
+  "chatlookup.copied.title": "¡Mensaje copiado!",
+  "chatlookup.regex.tooltip": "Modo regex",
+  "chatlookup.regex.invalid": "regex no válido",
+  "chatlookup.highlight.tooltip": "Resaltar coincidencias en el chat"
+}
