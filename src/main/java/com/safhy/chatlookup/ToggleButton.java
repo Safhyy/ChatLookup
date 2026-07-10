@@ -1,46 +1,60 @@
 package com.safhy.chatlookup;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.navigation.GuiNavigation;
-import net.minecraft.client.gui.navigation.GuiNavigationPath;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ComponentPath;
+//? if >=1.21.9 {
+import net.minecraft.client.input.MouseButtonEvent;
+//?}
+//? if >=26.1 {
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+//?} else {
+/*import net.minecraft.client.gui.GuiGraphics;
+*///?}
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.navigation.FocusNavigationEvent;
+import net.minecraft.network.chat.Component;
 
 import java.util.function.BooleanSupplier;
 
-public class ToggleButton extends ClickableWidget {
+public class ToggleButton extends AbstractWidget {
     public static final int SIZE = 12;
 
     private final BooleanSupplier state;
     private final Runnable onToggle;
     private final boolean markerIcon;
 
-    public ToggleButton(int x, int y, Text label, Text tooltip, boolean markerIcon,
+    public ToggleButton(int x, int y, Component label, Component tooltip, boolean markerIcon,
                         BooleanSupplier state, Runnable onToggle) {
         super(x, y, SIZE, SIZE, label);
         this.state = state;
         this.onToggle = onToggle;
         this.markerIcon = markerIcon;
-        this.setTooltip(Tooltip.of(tooltip));
+        this.setTooltip(Tooltip.create(tooltip));
     }
 
     @Override
-    public void onClick(Click click, boolean doubled) {
-        this.playDownSound(MinecraftClient.getInstance().getSoundManager());
+    //? if >=1.21.9 {
+    public void onClick(MouseButtonEvent click, boolean doubled) {
+    //?} else {
+    /*public void onClick(double mouseX, double mouseY) {
+    *///?}
+        this.playDownSound(Minecraft.getInstance().getSoundManager());
         this.onToggle.run();
     }
 
     @Override
-    public GuiNavigationPath getNavigationPath(GuiNavigation navigation) {
+    public ComponentPath nextFocusPath(FocusNavigationEvent navigation) {
         return null;
     }
 
     @Override
-    protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+    //?} else {
+    /*protected void renderWidget(GuiGraphics context, int mouseX, int mouseY, float delta) {
+    *///?}
         boolean active = this.state.getAsBoolean();
         int x1 = this.getX();
         int y1 = this.getY();
@@ -59,16 +73,16 @@ public class ToggleButton extends ClickableWidget {
             labelColor = active ? 0xFFFFDE5C : (this.isHovered() ? 0xFFFFFFFF : WidgetSkin.LABEL_IDLE);
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        
-        int glyphWidth = client.textRenderer.getWidth(this.getMessage()) - 1;
+        Minecraft client = Minecraft.getInstance();
+
+        int glyphWidth = client.font.width(this.getMessage()) - 1;
         int textX = x1 + (this.width - glyphWidth) / 2;
         int textY = y1 + (this.height - 8) / 2 + 1;
-        context.drawText(client.textRenderer, this.getMessage(), textX, textY, labelColor, false);
+        WidgetSkin.text(context, client.font, this.getMessage(), textX, textY, labelColor, false);
     }
 
     @Override
-    protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-        this.appendDefaultNarrations(builder);
+    protected void updateWidgetNarration(NarrationElementOutput builder) {
+        this.defaultButtonNarrationText(builder);
     }
 }

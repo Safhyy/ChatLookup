@@ -3,10 +3,14 @@ package com.safhy.chatlookup;
 import com.safhy.chatlookup.mixin.ChatHudAccessor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.fabricmc.api.ClientModInitializer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.client.gui.hud.ChatHudLine;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.ChatComponent;
+//? if >=26.1 {
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+//?} else {
+/*import net.minecraft.client.GuiMessage;
+*///?}
 
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -27,7 +31,7 @@ public final class ChatLookup implements ClientModInitializer {
     private record PlainText(String raw, String lower) {
     }
 
-    private static final Map<ChatHudLine, PlainText> PLAIN_TEXT_CACHE = new IdentityHashMap<>();
+    private static final Map<GuiMessage, PlainText> PLAIN_TEXT_CACHE = new IdentityHashMap<>();
 
     private static String query = "";
     private static String queryLowerCase = "";
@@ -64,6 +68,14 @@ public final class ChatLookup implements ClientModInitializer {
 
     public static boolean isQueryInvalid() {
         return queryInvalid;
+    }
+
+    public static ChatComponent getChat(Minecraft minecraft) {
+        //? if >=26.2 {
+        return minecraft.gui.hud.getChat();
+        //?} else {
+        /*return minecraft.gui.getChat();
+        *///?}
     }
 
     static void initFromConfig(boolean regex, boolean highlight) {
@@ -113,7 +125,7 @@ public final class ChatLookup implements ClientModInitializer {
         }
     }
 
-    public static boolean matches(ChatHudLine line) {
+    public static boolean matches(GuiMessage line) {
         if (query.isEmpty()) {
             return true;
         }
@@ -157,13 +169,13 @@ public final class ChatLookup implements ClientModInitializer {
         return out.isEmpty() ? NO_MATCHES : out.toIntArray();
     }
 
-    private static PlainText plainText(ChatHudLine line) {
+    private static PlainText plainText(GuiMessage line) {
         PlainText cached = PLAIN_TEXT_CACHE.get(line);
         if (cached == null) {
             if (PLAIN_TEXT_CACHE.size() > HISTORY_LIMIT * 2) {
                 PLAIN_TEXT_CACHE.clear();
             }
-            String stripped = Formatting.strip(line.content().getString());
+            String stripped = ChatFormatting.stripFormatting(line.content().getString());
             String raw = stripped == null ? "" : stripped;
             cached = new PlainText(raw, raw.toLowerCase(Locale.ROOT));
             PLAIN_TEXT_CACHE.put(line, cached);
@@ -171,7 +183,7 @@ public final class ChatLookup implements ClientModInitializer {
         return cached;
     }
 
-    public static void budgetedRefresh(ChatHud chatHud) {
+    public static void budgetedRefresh(ChatComponent chatHud) {
         countsDirty = true;
         recountIfDirty(chatHud);
         refreshSkip = Math.max(0, matchedCount - VISIBLE_REBUILD_BUDGET);
@@ -191,9 +203,9 @@ public final class ChatLookup implements ClientModInitializer {
     }
 
     private static void refreshChatHud() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client != null && client.inGameHud != null) {
-            budgetedRefresh(client.inGameHud.getChatHud());
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft != null && minecraft.gui != null) {
+            budgetedRefresh(getChat(minecraft));
         }
     }
 
@@ -201,29 +213,29 @@ public final class ChatLookup implements ClientModInitializer {
         countsDirty = true;
     }
 
-    public static int getMatchedCount(ChatHud chatHud) {
+    public static int getMatchedCount(ChatComponent chatHud) {
         recountIfDirty(chatHud);
         return matchedCount;
     }
 
-    public static int getTotalCount(ChatHud chatHud) {
+    public static int getTotalCount(ChatComponent chatHud) {
         recountIfDirty(chatHud);
         return totalCount;
     }
 
-    private static void recountIfDirty(ChatHud chatHud) {
+    private static void recountIfDirty(ChatComponent chatHud) {
         if (!countsDirty) {
             return;
         }
         countsDirty = false;
-        List<ChatHudLine> messages = ((ChatHudAccessor) chatHud).chatlookup$getMessages();
+        List<GuiMessage> messages = ((ChatHudAccessor) chatHud).chatlookup$getMessages();
         totalCount = messages.size();
         if (!isFiltering()) {
             matchedCount = totalCount;
             return;
         }
         int matched = 0;
-        for (ChatHudLine line : messages) {
+        for (GuiMessage line : messages) {
             if (matches(line)) {
                 matched++;
             }

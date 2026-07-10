@@ -1,28 +1,32 @@
 package com.safhy.chatlookup.mixin;
 
-import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.client.gui.hud.ChatHudLine;
+import net.minecraft.client.gui.components.ChatComponent;
+//? if >=26.1 {
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+//?} else {
+/*import net.minecraft.client.GuiMessage;
+*///?}
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.util.List;
 
-@Mixin(ChatHud.class)
+@Mixin(ChatComponent.class)
 public interface ChatHudAccessor {
-    @Accessor("messages")
-    List<ChatHudLine> chatlookup$getMessages();
+    @Accessor("allMessages")
+    List<GuiMessage> chatlookup$getMessages();
 
-    @Accessor("visibleMessages")
-    List<ChatHudLine.Visible> chatlookup$getVisibleMessages();
+    @Accessor("trimmedMessages")
+    List<GuiMessage.Line> chatlookup$getVisibleMessages();
 
-    @Accessor("scrolledLines")
+    @Accessor("chatScrollbarPos")
     int chatlookup$getScrolledLines();
 
-    @Invoker("refresh")
+    @Invoker("rescaleChat")
     void chatlookup$refresh();
 
-    @Invoker("getChatScale")
+    @Invoker("getScale")
     double chatlookup$getChatScale();
 
     @Invoker("getWidth")
@@ -30,7 +34,4 @@ public interface ChatHudAccessor {
 
     @Invoker("getLineHeight")
     int chatlookup$getLineHeight();
-
-    @Invoker("isChatHidden")
-    boolean chatlookup$isChatHidden();
 }
