@@ -2,15 +2,27 @@ package com.safhy.chatlookup;
 
 import com.safhy.chatlookup.mixin.ChatHudAccessor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.client.gui.hud.ChatHudLine;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+//?} else {
+/*import net.minecraft.client.gui.GuiGraphics;
+*///?}
+import net.minecraft.client.gui.components.ChatComponent;
+//? if >=26.1 {
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+//?} else {
+/*import net.minecraft.client.GuiMessage;
+*///?}
+import net.minecraft.network.chat.Style;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Mth;
+//? if >=1.21.6 {
 import org.joml.Matrix3x2fStack;
+//?} else {
+/*import com.mojang.blaze3d.vertex.PoseStack;
+*///?}
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -22,33 +34,42 @@ public final class HighlightRenderer {
     private static final int CACHE_LIMIT = 4096;
     private static final int[] NO_RANGES = new int[0];
 
-    private static final Map<ChatHudLine.Visible, int[]> PIXEL_CACHE = new IdentityHashMap<>();
+    private static final Map<GuiMessage.Line, int[]> PIXEL_CACHE = new IdentityHashMap<>();
 
-    public static void render(DrawContext context, TextRenderer textRenderer, MinecraftClient client, int windowHeight) {
-        ChatHud chatHud = client.inGameHud.getChatHud();
+    //? if >=26.1 {
+    public static void render(GuiGraphicsExtractor context, Font font, Minecraft minecraft, int windowHeight) {
+    //?} else {
+    /*public static void render(GuiGraphics context, Font font, Minecraft minecraft, int windowHeight) {
+    *///?}
+        ChatComponent chatHud = ChatLookup.getChat(minecraft);
         ChatHudAccessor hud = (ChatHudAccessor) chatHud;
-        List<ChatHudLine.Visible> visible = hud.chatlookup$getVisibleMessages();
+        List<GuiMessage.Line> visible = hud.chatlookup$getVisibleMessages();
         int scrolled = hud.chatlookup$getScrolledLines();
-        int onScreen = Math.min(visible.size() - scrolled, chatHud.getVisibleLineCount());
+        int onScreen = Math.min(visible.size() - scrolled, chatHud.getLinesPerPage());
         if (onScreen <= 0) {
             return;
         }
 
-        // Mirrors ChatHud.render's geometry: scale(f, f) then translate(4, 0);
-        // slot s has its text top at chatBottom - s * lineHeight - textOffset.
         float scale = (float) hud.chatlookup$getChatScale();
-        int chatBottom = MathHelper.floor((windowHeight - 40) / scale);
+        int chatBottom = Mth.floor((windowHeight - 40) / scale);
         int lineHeight = hud.chatlookup$getLineHeight();
-        double spacing = client.options.getChatLineSpacing().getValue();
+        double spacing = minecraft.options.chatLineSpacing().get();
         int textOffset = (int) Math.round(8.0 * (spacing + 1.0) - 4.0 * spacing);
 
-        Matrix3x2fStack matrices = context.getMatrices();
+        //? if >=1.21.6 {
+        Matrix3x2fStack matrices = context.pose();
         matrices.pushMatrix();
         matrices.scale(scale, scale);
         matrices.translate(4.0F, 0.0F);
+        //?} else {
+        /*PoseStack matrices = context.pose();
+        matrices.pushPose();
+        matrices.scale(scale, scale, 1.0F);
+        matrices.translate(4.0F, 0.0F, 0.0F);
+        *///?}
         for (int slot = 0; slot < onScreen; slot++) {
-            ChatHudLine.Visible line = visible.get(slot + scrolled);
-            int[] ranges = pixelRanges(line, textRenderer);
+            GuiMessage.Line line = visible.get(slot + scrolled);
+            int[] ranges = pixelRanges(line, font);
             if (ranges.length == 0) {
                 continue;
             }
@@ -57,10 +78,14 @@ public final class HighlightRenderer {
                 context.fill(ranges[i], top - 1, ranges[i + 1] + 1, top + 9, HIGHLIGHT_COLOR);
             }
         }
+        //? if >=1.21.6 {
         matrices.popMatrix();
+        //?} else {
+        /*matrices.popPose();
+        *///?}
     }
 
-    private static int[] pixelRanges(ChatHudLine.Visible line, TextRenderer textRenderer) {
+    private static int[] pixelRanges(GuiMessage.Line line, Font font) {
         int[] cached = PIXEL_CACHE.get(line);
         if (cached != null) {
             return cached;
@@ -68,12 +93,12 @@ public final class HighlightRenderer {
         if (PIXEL_CACHE.size() > CACHE_LIMIT) {
             PIXEL_CACHE.clear();
         }
-        int[] result = computePixelRanges(line.content(), textRenderer);
+        int[] result = computePixelRanges(line.content(), font);
         PIXEL_CACHE.put(line, result);
         return result;
     }
 
-    private static int[] computePixelRanges(OrderedText content, TextRenderer textRenderer) {
+    private static int[] computePixelRanges(FormattedCharSequence content, Font font) {
         List<Style> styles = new ArrayList<>();
         IntArrayList codePoints = new IntArrayList();
         IntArrayList charStarts = new IntArrayList();
@@ -98,8 +123,8 @@ public final class HighlightRenderer {
             if (toGlyph <= fromGlyph) {
                 continue;
             }
-            int x1 = width(textRenderer, styles, codePoints, 0, fromGlyph);
-            int x2 = x1 + width(textRenderer, styles, codePoints, fromGlyph, toGlyph);
+            int x1 = width(font, styles, codePoints, 0, fromGlyph);
+            int x2 = x1 + width(font, styles, codePoints, fromGlyph, toGlyph);
             pixels.add(x1);
             pixels.add(x2);
         }
@@ -115,11 +140,11 @@ public final class HighlightRenderer {
         return charStarts.size();
     }
 
-    private static int width(TextRenderer textRenderer, List<Style> styles, IntArrayList codePoints, int from, int to) {
+    private static int width(Font font, List<Style> styles, IntArrayList codePoints, int from, int to) {
         if (to <= from) {
             return 0;
         }
-        OrderedText part = visitor -> {
+        FormattedCharSequence part = visitor -> {
             for (int i = from; i < to; i++) {
                 if (!visitor.accept(i - from, styles.get(i), codePoints.getInt(i))) {
                     return false;
@@ -127,7 +152,7 @@ public final class HighlightRenderer {
             }
             return true;
         };
-        return textRenderer.getWidth(part);
+        return font.width(part);
     }
 
     private HighlightRenderer() {

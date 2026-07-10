@@ -1,15 +1,23 @@
 package com.safhy.chatlookup;
 
 import com.safhy.chatlookup.mixin.ChatHudAccessor;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.client.gui.hud.ChatHudLine;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+//?} else {
+/*import net.minecraft.client.gui.GuiGraphics;
+*///?}
+import net.minecraft.client.gui.components.ChatComponent;
+//? if >=26.1 {
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+//?} else {
+/*import net.minecraft.client.GuiMessage;
+*///?}
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.ChatVisiblity;
 
 import java.util.List;
 
@@ -24,10 +32,10 @@ public final class ChatMessageCopier {
     private static long popupShownAt = Long.MIN_VALUE;
     private static String popupSnippet = "";
 
-    public static boolean copyMessageAt(MinecraftClient client, double mouseX, double mouseY, int windowHeight) {
-        ChatHud chatHud = client.inGameHud.getChatHud();
+    public static boolean copyMessageAt(Minecraft minecraft, double mouseX, double mouseY, int windowHeight) {
+        ChatComponent chatHud = ChatLookup.getChat(minecraft);
         ChatHudAccessor hud = (ChatHudAccessor) chatHud;
-        if (hud.chatlookup$isChatHidden()) {
+        if (minecraft.options.chatVisibility().get() == ChatVisiblity.HIDDEN) {
             return false;
         }
 
@@ -35,21 +43,21 @@ public final class ChatMessageCopier {
         double localX = mouseX / scale - 4.0;
         double localY = mouseY / scale;
 
-        int width = MathHelper.ceil(hud.chatlookup$getWidth() / scale);
+        int width = Mth.ceil(hud.chatlookup$getWidth() / scale);
         if (localX < -4.0 || localX > width + 8.0) {
             return false;
         }
 
-        int chatBottom = MathHelper.floor((windowHeight - CHAT_OFFSET_FROM_BOTTOM) / scale);
+        int chatBottom = Mth.floor((windowHeight - CHAT_OFFSET_FROM_BOTTOM) / scale);
         double fromBottom = chatBottom - localY;
         if (fromBottom < 0.0) {
             return false;
         }
         int slot = (int) (fromBottom / hud.chatlookup$getLineHeight());
 
-        List<ChatHudLine.Visible> visible = hud.chatlookup$getVisibleMessages();
+        List<GuiMessage.Line> visible = hud.chatlookup$getVisibleMessages();
         int scrolled = hud.chatlookup$getScrolledLines();
-        if (slot >= chatHud.getVisibleLineCount() || slot >= visible.size() - scrolled) {
+        if (slot >= chatHud.getLinesPerPage() || slot >= visible.size() - scrolled) {
             return false;
         }
         int lineIndex = slot + scrolled;
@@ -65,36 +73,44 @@ public final class ChatMessageCopier {
         }
 
         int seen = -1;
-        for (ChatHudLine line : hud.chatlookup$getMessages()) {
+        for (GuiMessage line : hud.chatlookup$getMessages()) {
             if (ChatLookup.matches(line)) {
                 seen++;
                 if (seen == ordinal) {
-                    return copy(client, line);
+                    return copy(minecraft, line);
                 }
             }
         }
         return false;
     }
 
-    private static boolean copy(MinecraftClient client, ChatHudLine line) {
-        String stripped = Formatting.strip(line.content().getString());
+    private static boolean copy(Minecraft minecraft, GuiMessage line) {
+        String stripped = ChatFormatting.stripFormatting(line.content().getString());
         String text = stripped == null ? "" : stripped;
         if (text.isBlank()) {
             return false;
         }
-        client.keyboard.setClipboard(text);
+        minecraft.keyboardHandler.setClipboard(text);
 
         String snippet = text.replace('\n', ' ');
         if (snippet.length() > SNIPPET_LENGTH) {
             snippet = snippet.substring(0, SNIPPET_LENGTH - 1).stripTrailing() + "…";
         }
         popupSnippet = snippet;
-        popupShownAt = Util.getMeasuringTimeMs();
+        popupShownAt = now();
         return true;
     }
 
-    public static void renderCopyPopup(DrawContext context, TextRenderer textRenderer, int screenWidth, int screenHeight) {
-        long elapsed = Util.getMeasuringTimeMs() - popupShownAt;
+    private static long now() {
+        return System.nanoTime() / 1_000_000L;
+    }
+
+    //? if >=26.1 {
+    public static void renderCopyPopup(GuiGraphicsExtractor context, Font font, int screenWidth, int screenHeight) {
+    //?} else {
+    /*public static void renderCopyPopup(GuiGraphics context, Font font, int screenWidth, int screenHeight) {
+    *///?}
+        long elapsed = now() - popupShownAt;
         if (elapsed < 0 || elapsed >= POPUP_DURATION_MS) {
             return;
         }
@@ -115,8 +131,8 @@ public final class ChatMessageCopier {
             return;
         }
 
-        Text title = Text.translatable("chatlookup.copied.title");
-        int textWidth = Math.max(textRenderer.getWidth(title), textRenderer.getWidth(popupSnippet));
+        Component title = Component.translatable("chatlookup.copied.title");
+        int textWidth = Math.max(font.width(title), font.width(popupSnippet));
         int panelWidth = textWidth + 13;
         int panelHeight = 5 + 9 + 3 + 9 + 5;
 
@@ -139,8 +155,8 @@ public final class ChatMessageCopier {
         context.fill(x1, y1, x1 + 3, y2, accentColor);
 
         int textX = x1 + 7;
-        context.drawTextWithShadow(textRenderer, title, textX, y1 + 5, titleColor);
-        context.drawTextWithShadow(textRenderer, Text.literal(popupSnippet), textX, y1 + 5 + 9 + 3, snippetColor);
+        WidgetSkin.text(context, font, title, textX, y1 + 5, titleColor, true);
+        WidgetSkin.text(context, font, Component.literal(popupSnippet), textX, y1 + 5 + 9 + 3, snippetColor, true);
     }
 
     private ChatMessageCopier() {

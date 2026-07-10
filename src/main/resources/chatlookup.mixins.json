@@ -1,12 +1,13 @@
 {
   "required": true,
   "package": "com.safhy.chatlookup.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_${java}",
   "client": [
     "ChatHudAccessor",
     "ChatHudMixin",
     "ChatScreenMixin",
-    "InGameHudMixin"
+    "InGameHudMixin",
+    "MinecraftMixin"
   ],
   "injectors": {
     "defaultRequire": 1

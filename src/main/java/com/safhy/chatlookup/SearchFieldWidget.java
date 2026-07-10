@@ -1,26 +1,32 @@
 package com.safhy.chatlookup;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.navigation.GuiNavigation;
-import net.minecraft.client.gui.navigation.GuiNavigationPath;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.ComponentPath;
+import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+//?} else {
+/*import net.minecraft.client.gui.GuiGraphics;
+*///?}
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.navigation.FocusNavigationEvent;
+import net.minecraft.network.chat.Component;
 
-public class SearchFieldWidget extends TextFieldWidget {
-    public SearchFieldWidget(TextRenderer textRenderer, int x, int y, int width, int height, Text text) {
-        super(textRenderer, x, y, width, height, text);
+public class SearchFieldWidget extends EditBox {
+    public SearchFieldWidget(Font font, int x, int y, int width, int height, Component text) {
+        super(font, x, y, width, height, text);
+        //? if >=1.21.6 {
         this.setTextShadow(false);
+        //?}
     }
 
 
     @Override
-    public GuiNavigationPath getNavigationPath(GuiNavigation navigation) {
+    public ComponentPath nextFocusPath(FocusNavigationEvent navigation) {
         return null;
     }
 
     @Override
-    public boolean drawsBackground() {
+    public boolean isBordered() {
         return false;
     }
 
@@ -30,7 +36,11 @@ public class SearchFieldWidget extends TextFieldWidget {
     }
 
     @Override
-    public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    public void extractWidgetRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+    //?} else {
+    /*public void renderWidget(GuiGraphics context, int mouseX, int mouseY, float delta) {
+    *///?}
         int x1 = this.getX();
         int y1 = this.getY();
         int x2 = x1 + this.getWidth();
@@ -39,6 +49,10 @@ public class SearchFieldWidget extends TextFieldWidget {
         int border = this.isFocused() ? WidgetSkin.ACCENT
                 : (this.isHovered() ? WidgetSkin.BORDER_HOVER : WidgetSkin.BORDER_IDLE);
         WidgetSkin.drawPanel(context, x1, y1, x2, y2, background, border);
-        super.renderWidget(context, mouseX, mouseY, delta);
+        //? if >=26.1 {
+        super.extractWidgetRenderState(context, mouseX, mouseY, delta);
+        //?} else {
+        /*super.renderWidget(context, mouseX, mouseY, delta);
+        *///?}
     }
 }

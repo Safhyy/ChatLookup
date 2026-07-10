@@ -5,11 +5,16 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import com.safhy.chatlookup.mixin.ChatHudAccessor;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.client.gui.hud.ChatHudLine;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.components.ChatComponent;
+//? if >=26.1 {
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+import net.minecraft.client.multiplayer.chat.GuiMessageSource;
+//?} else {
+/*import net.minecraft.client.GuiMessage;
+*///?}
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,10 +41,18 @@ public final class ChatHistoryStore {
     private static BufferedWriter appendWriter;
     private static boolean disabled;
 
-    public static void restoreInto(ChatHud chatHud) {
+    public static GuiMessage restoredLine(Component content) {
+        //? if >=26.1 {
+        return new GuiMessage(RESTORED_CREATION_TICK, content, null, GuiMessageSource.SYSTEM_CLIENT, null);
+        //?} else {
+        /*return new GuiMessage(RESTORED_CREATION_TICK, content, null, null);
+        *///?}
+    }
+
+    public static void restoreInto(ChatComponent chatHud) {
         try {
             Files.createDirectories(DIRECTORY);
-            List<Text> history = loadHistory();
+            List<Component> history = loadHistory();
             compact(history);
             openAppendWriter();
             Runtime.getRuntime().addShutdownHook(new Thread(ChatHistoryStore::close, "ChatLookup-history-close"));
@@ -47,9 +60,9 @@ public final class ChatHistoryStore {
                 return;
             }
 
-            List<ChatHudLine> messages = ((ChatHudAccessor) chatHud).chatlookup$getMessages();
+            List<GuiMessage> messages = ((ChatHudAccessor) chatHud).chatlookup$getMessages();
             for (int i = history.size() - 1; i >= 0; i--) {
-                messages.add(new ChatHudLine(RESTORED_CREATION_TICK, history.get(i), null, null));
+                messages.add(restoredLine(history.get(i)));
             }
             ChatLookup.budgetedRefresh(chatHud);
             LOGGER.info("[ChatLookup] Restored {} chat messages from the previous session", history.size());
@@ -59,7 +72,7 @@ public final class ChatHistoryStore {
         }
     }
 
-    public static synchronized void append(Text content) {
+    public static synchronized void append(Component content) {
         if (disabled || appendWriter == null) {
             return;
         }
@@ -88,11 +101,11 @@ public final class ChatHistoryStore {
         }
     }
 
-    private static List<Text> loadHistory() {
+    private static List<Component> loadHistory() {
         if (!Files.isRegularFile(HISTORY_FILE)) {
             return List.of();
         }
-        List<Text> history = new ArrayList<>();
+        List<Component> history = new ArrayList<>();
         try {
             for (String line : Files.readAllLines(HISTORY_FILE, StandardCharsets.UTF_8)) {
                 if (line.isBlank()) {
@@ -100,7 +113,7 @@ public final class ChatHistoryStore {
                 }
                 try {
                     JsonElement json = JsonParser.parseString(line);
-                    TextCodecs.CODEC.parse(JsonOps.INSTANCE, json).result().ifPresent(history::add);
+                    ComponentSerialization.CODEC.parse(JsonOps.INSTANCE, json).result().ifPresent(history::add);
                 } catch (Exception ignored) {
                 }
             }
@@ -114,9 +127,9 @@ public final class ChatHistoryStore {
         return history;
     }
 
-    private static void compact(List<Text> history) throws IOException {
+    private static void compact(List<Component> history) throws IOException {
         try (BufferedWriter writer = Files.newBufferedWriter(TEMP_FILE, StandardCharsets.UTF_8)) {
-            for (Text text : history) {
+            for (Component text : history) {
                 writer.write(serialize(text));
                 writer.newLine();
             }
@@ -133,11 +146,11 @@ public final class ChatHistoryStore {
                 StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
 
-    private static String serialize(Text text) {
-        JsonElement json = TextCodecs.CODEC.encodeStart(JsonOps.INSTANCE, text).result().orElse(null);
+    private static String serialize(Component text) {
+        JsonElement json = ComponentSerialization.CODEC.encodeStart(JsonOps.INSTANCE, text).result().orElse(null);
         if (json == null) {
-            String plain = Formatting.strip(text.getString());
-            json = TextCodecs.CODEC.encodeStart(JsonOps.INSTANCE, Text.literal(plain == null ? "" : plain)).result().orElseThrow();
+            String plain = ChatFormatting.stripFormatting(text.getString());
+            json = ComponentSerialization.CODEC.encodeStart(JsonOps.INSTANCE, Component.literal(plain == null ? "" : plain)).result().orElseThrow();
         }
         return json.toString();
     }
