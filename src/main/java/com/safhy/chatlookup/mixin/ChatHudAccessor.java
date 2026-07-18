@@ -26,6 +26,12 @@ public interface ChatHudAccessor {
     @Invoker("rescaleChat")
     void chatlookup$refresh();
 
+    @Invoker("addMessageToDisplayQueue")
+    void chatlookup$addToDisplay(GuiMessage message);
+
+    @Invoker("addMessageToQueue")
+    void chatlookup$addToQueue(GuiMessage message);
+
     @Invoker("getScale")
     double chatlookup$getChatScale();
 

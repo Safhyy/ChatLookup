@@ -50,6 +50,15 @@ public final class WidgetSkin {
     }
     *///?}
 
+    public static int lerpColor(float t, int from, int to) {
+        float clamped = t < 0 ? 0 : Math.min(t, 1);
+        int a = (int) (((from >>> 24) & 0xFF) + (((to >>> 24) & 0xFF) - ((from >>> 24) & 0xFF)) * clamped);
+        int r = (int) (((from >>> 16) & 0xFF) + (((to >>> 16) & 0xFF) - ((from >>> 16) & 0xFF)) * clamped);
+        int g = (int) (((from >>> 8) & 0xFF) + (((to >>> 8) & 0xFF) - ((from >>> 8) & 0xFF)) * clamped);
+        int b = (int) ((from & 0xFF) + ((to & 0xFF) - (from & 0xFF)) * clamped);
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
+
     private WidgetSkin() {
     }
 }

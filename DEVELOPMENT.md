@@ -2,7 +2,7 @@
 
 | Command | What it does |
 |---|---|
-| `.\gradlew.bat buildAndCollect` | Build **all** versions → jars land in `build/libs/1.0.0/` |
+| `.\gradlew.bat buildAndCollect` | Build **all** versions → jars land in `build/libs/1.1.0/` |
 | `.\gradlew.bat :26.2:build` | Build a **single** version (jar in `versions/26.2/build/libs/`) |
 
 ##  Test in game
@@ -32,4 +32,4 @@ Each target builds one jar covering a range of MC versions (configured in `stone
 | `1.21.8` | 1.21.6, 1.21.7, 1.21.8 |
 | `1.21.11` | 1.21.9, 1.21.10, 1.21.11 |
 | `26.1.2` | 26.1, 26.1.1, 26.1.2 |
-| `26.2` | 26.2|
+| `26.2` | 26.2 |
