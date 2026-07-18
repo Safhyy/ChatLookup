@@ -8,14 +8,22 @@ base.archivesName = property("mod.id") as String
 val javaVersion = (property("mod.java") as String).toInt()
 val obfuscated = sc.current.version.startsWith("1.")
 
+repositories {
+    maven("https://api.modrinth.com/maven") { name = "Modrinth" }
+}
+
 dependencies {
     minecraft("com.mojang:minecraft:${sc.current.version}")
     if (obfuscated) {
         mappings(loom.officialMojangMappings())
         modImplementation("net.fabricmc:fabric-loader:${property("deps.fabric_loader")}")
+        modCompileOnly("maven.modrinth:modmenu:${property("deps.modmenu")}")
     } else {
         implementation("net.fabricmc:fabric-loader:${property("deps.fabric_loader")}")
+        compileOnly("maven.modrinth:modmenu:${property("deps.modmenu")}")
     }
+    compileOnly("io.github.llamalad7:mixinextras-common:0.5.4")
+    annotationProcessor("io.github.llamalad7:mixinextras-common:0.5.4")
 }
 
 loom {

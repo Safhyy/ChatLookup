@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class HighlightRenderer {
-    private static final int HIGHLIGHT_COLOR = 0x5FFFE14D;
+    private static final int HIGHLIGHT_ALPHA = 0x5F000000;
     private static final int CACHE_LIMIT = 4096;
     private static final int[] NO_RANGES = new int[0];
 
@@ -67,6 +67,7 @@ public final class HighlightRenderer {
         matrices.scale(scale, scale, 1.0F);
         matrices.translate(4.0F, 0.0F, 0.0F);
         *///?}
+        int highlightColor = HIGHLIGHT_ALPHA | ChatLookup.getHighlightColor();
         for (int slot = 0; slot < onScreen; slot++) {
             GuiMessage.Line line = visible.get(slot + scrolled);
             int[] ranges = pixelRanges(line, font);
@@ -75,7 +76,7 @@ public final class HighlightRenderer {
             }
             int top = chatBottom - slot * lineHeight - textOffset;
             for (int i = 0; i < ranges.length; i += 2) {
-                context.fill(ranges[i], top - 1, ranges[i + 1] + 1, top + 9, HIGHLIGHT_COLOR);
+                context.fill(ranges[i], top - 1, ranges[i + 1] + 1, top + 9, highlightColor);
             }
         }
         //? if >=1.21.6 {

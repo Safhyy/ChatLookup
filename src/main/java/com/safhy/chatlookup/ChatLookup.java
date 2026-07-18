@@ -23,6 +23,12 @@ import java.util.regex.PatternSyntaxException;
 public final class ChatLookup implements ClientModInitializer {
     public static final int HISTORY_LIMIT = 32_768;
 
+    public static final int DEFAULT_TIMESTAMP_COLOR = 0xFFFFFF;
+    public static final int DEFAULT_STACK_COLOR = 0xAAAAAA;
+    public static final int DEFAULT_HIGHLIGHT_COLOR = 0xFFE14D;
+    public static final int DEFAULT_MENTION_COLOR = 0xFFD24A;
+    public static final int DEFAULT_COPY_BORDER_COLOR = 0xFFD24A;
+
     private static final int VISIBLE_REBUILD_BUDGET = 2048;
 
     private static final int MAX_MATCHES_PER_LINE = 128;
@@ -37,6 +43,24 @@ public final class ChatLookup implements ClientModInitializer {
     private static String queryLowerCase = "";
     private static boolean regexMode;
     private static boolean highlightEnabled = true;
+    private static boolean stackingEnabled = true;
+    private static boolean stackConsecutiveOnly = true;
+    private static boolean timestampsEnabled = true;
+    private static boolean animationEnabled = true;
+    private static boolean indicatorHidden = true;
+    private static boolean headsEnabled = true;
+    private static boolean twelveHourClock;
+    private static boolean historySaveEnabled = true;
+    private static boolean copyEnabled = true;
+    private static boolean copyStripTimestamp = true;
+    private static boolean copyStripCounter = true;
+    private static boolean mentionEnabled = true;
+    private static boolean mentionSoundEnabled = true;
+    private static int timestampColor = DEFAULT_TIMESTAMP_COLOR;
+    private static int stackColor = DEFAULT_STACK_COLOR;
+    private static int highlightColor = DEFAULT_HIGHLIGHT_COLOR;
+    private static int mentionColor = DEFAULT_MENTION_COLOR;
+    private static int copyBorderColor = DEFAULT_COPY_BORDER_COLOR;
     private static Pattern pattern;
     private static boolean queryInvalid;
 
@@ -66,8 +90,80 @@ public final class ChatLookup implements ClientModInitializer {
         return highlightEnabled;
     }
 
+    public static boolean isStackingEnabled() {
+        return stackingEnabled;
+    }
+
+    public static boolean isStackConsecutiveOnly() {
+        return stackConsecutiveOnly;
+    }
+
+    public static boolean isTimestampsEnabled() {
+        return timestampsEnabled;
+    }
+
+    public static boolean isAnimationEnabled() {
+        return animationEnabled;
+    }
+
+    public static boolean isIndicatorHidden() {
+        return indicatorHidden;
+    }
+
+    public static boolean isHeadsEnabled() {
+        return headsEnabled;
+    }
+
+    public static boolean isTwelveHourClock() {
+        return twelveHourClock;
+    }
+
+    public static boolean isHistorySaveEnabled() {
+        return historySaveEnabled;
+    }
+
+    public static boolean isCopyEnabled() {
+        return copyEnabled;
+    }
+
+    public static boolean isCopyStripTimestamp() {
+        return copyStripTimestamp;
+    }
+
+    public static boolean isCopyStripCounter() {
+        return copyStripCounter;
+    }
+
+    public static boolean isMentionEnabled() {
+        return mentionEnabled;
+    }
+
+    public static boolean isMentionSoundEnabled() {
+        return mentionSoundEnabled;
+    }
+
     public static boolean isQueryInvalid() {
         return queryInvalid;
+    }
+
+    public static int getTimestampColor() {
+        return timestampColor;
+    }
+
+    public static int getStackColor() {
+        return stackColor;
+    }
+
+    public static int getHighlightColor() {
+        return highlightColor;
+    }
+
+    public static int getMentionColor() {
+        return mentionColor;
+    }
+
+    public static int getCopyBorderColor() {
+        return copyBorderColor;
     }
 
     public static ChatComponent getChat(Minecraft minecraft) {
@@ -78,10 +174,53 @@ public final class ChatLookup implements ClientModInitializer {
         *///?}
     }
 
-    static void initFromConfig(boolean regex, boolean highlight) {
-        regexMode = regex;
-        highlightEnabled = highlight;
+    public static void setScreen(Minecraft minecraft, net.minecraft.client.gui.screens.Screen screen) {
+        //? if >=26.2 {
+        minecraft.setScreenAndShow(screen);
+        //?} else {
+        /*minecraft.setScreen(screen);
+        *///?}
+    }
+
+    static void initFromConfig(java.util.Properties p) {
+        regexMode = boolOf(p, "regex_mode", false);
+        highlightEnabled = boolOf(p, "highlight_matches", true);
+        stackingEnabled = boolOf(p, "stack_messages", true);
+        stackConsecutiveOnly = boolOf(p, "stack_consecutive_only", true);
+        timestampsEnabled = boolOf(p, "show_timestamps", true);
+        animationEnabled = boolOf(p, "smooth_animation", true);
+        indicatorHidden = boolOf(p, "hide_indicator_line", true);
+        headsEnabled = boolOf(p, "chat_heads", true);
+        twelveHourClock = boolOf(p, "timestamp_12h", false);
+        historySaveEnabled = boolOf(p, "save_history", true);
+        copyEnabled = boolOf(p, "copy_messages", true);
+        copyStripTimestamp = boolOf(p, "copy_strip_timestamp", true);
+        copyStripCounter = boolOf(p, "copy_strip_counter", true);
+        mentionEnabled = boolOf(p, "mention_detector", true);
+        mentionSoundEnabled = boolOf(p, "mention_sound", true);
+        timestampColor = colorOf(p, "timestamp_color", DEFAULT_TIMESTAMP_COLOR);
+        stackColor = colorOf(p, "stack_color", DEFAULT_STACK_COLOR);
+        highlightColor = colorOf(p, "highlight_color", DEFAULT_HIGHLIGHT_COLOR);
+        mentionColor = colorOf(p, "mention_color", DEFAULT_MENTION_COLOR);
+        copyBorderColor = colorOf(p, "copy_border_color", DEFAULT_COPY_BORDER_COLOR);
         recompile();
+    }
+
+    private static boolean boolOf(java.util.Properties p, String key, boolean fallback) {
+        String value = p.getProperty(key);
+        return value == null ? fallback : Boolean.parseBoolean(value);
+    }
+
+    private static int colorOf(java.util.Properties p, String key, int fallback) {
+        String value = p.getProperty(key);
+        if (value == null) {
+            return fallback;
+        }
+        try {
+            return (int) (Long.parseLong(value.trim().replace("#", ""), 16) & 0xFFFFFF);
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 
     public static void setQuery(String newQuery) {
@@ -111,6 +250,130 @@ public final class ChatLookup implements ClientModInitializer {
         }
         highlightEnabled = enabled;
         ChatLookupConfig.save();
+    }
+
+    public static void setStackingEnabled(boolean enabled) {
+        if (stackingEnabled == enabled) {
+            return;
+        }
+        stackingEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setStackConsecutiveOnly(boolean enabled) {
+        if (stackConsecutiveOnly == enabled) {
+            return;
+        }
+        stackConsecutiveOnly = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setTimestampsEnabled(boolean enabled) {
+        if (timestampsEnabled == enabled) {
+            return;
+        }
+        timestampsEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setAnimationEnabled(boolean enabled) {
+        if (animationEnabled == enabled) {
+            return;
+        }
+        animationEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setHeadsEnabled(boolean enabled) {
+        if (headsEnabled == enabled) {
+            return;
+        }
+        headsEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setIndicatorHidden(boolean hidden) {
+        if (indicatorHidden == hidden) {
+            return;
+        }
+        indicatorHidden = hidden;
+        ChatLookupConfig.save();
+    }
+
+    public static void setTwelveHourClock(boolean enabled) {
+        if (twelveHourClock == enabled) {
+            return;
+        }
+        twelveHourClock = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setHistorySaveEnabled(boolean enabled) {
+        if (historySaveEnabled == enabled) {
+            return;
+        }
+        historySaveEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setCopyEnabled(boolean enabled) {
+        if (copyEnabled == enabled) {
+            return;
+        }
+        copyEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setCopyStripTimestamp(boolean enabled) {
+        if (copyStripTimestamp == enabled) {
+            return;
+        }
+        copyStripTimestamp = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setCopyStripCounter(boolean enabled) {
+        if (copyStripCounter == enabled) {
+            return;
+        }
+        copyStripCounter = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setMentionEnabled(boolean enabled) {
+        if (mentionEnabled == enabled) {
+            return;
+        }
+        mentionEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setMentionSoundEnabled(boolean enabled) {
+        if (mentionSoundEnabled == enabled) {
+            return;
+        }
+        mentionSoundEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setTimestampColor(int rgb) {
+        timestampColor = rgb & 0xFFFFFF;
+    }
+
+    public static void setStackColor(int rgb) {
+        stackColor = rgb & 0xFFFFFF;
+    }
+
+    public static void setHighlightColor(int rgb) {
+        highlightColor = rgb & 0xFFFFFF;
+    }
+
+    public static void setMentionColor(int rgb) {
+        mentionColor = rgb & 0xFFFFFF;
+    }
+
+    public static void setCopyBorderColor(int rgb) {
+        copyBorderColor = rgb & 0xFFFFFF;
     }
 
     private static void recompile() {
@@ -167,6 +430,10 @@ public final class ChatLookup implements ClientModInitializer {
             }
         }
         return out.isEmpty() ? NO_MATCHES : out.toIntArray();
+    }
+
+    public static void overridePlainText(GuiMessage line, String raw) {
+        PLAIN_TEXT_CACHE.put(line, new PlainText(raw, raw.toLowerCase(Locale.ROOT)));
     }
 
     private static PlainText plainText(GuiMessage line) {

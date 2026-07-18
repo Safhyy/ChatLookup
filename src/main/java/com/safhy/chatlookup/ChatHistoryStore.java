@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -38,10 +40,12 @@ public final class ChatHistoryStore {
     private static final Path HISTORY_FILE = DIRECTORY.resolve("history.ndjson");
     private static final Path TEMP_FILE = DIRECTORY.resolve("history.ndjson.tmp");
 
-    private static BufferedWriter appendWriter;
+    private static FileChannel appendChannel;
+    private static long lastLineStart = -1;
     private static boolean disabled;
 
     public static GuiMessage restoredLine(Component content) {
+        content = MessageDecorator.stripHeadSpacer(content);
         //? if >=26.1 {
         return new GuiMessage(RESTORED_CREATION_TICK, content, null, GuiMessageSource.SYSTEM_CLIENT, null);
         //?} else {
@@ -54,7 +58,7 @@ public final class ChatHistoryStore {
             Files.createDirectories(DIRECTORY);
             List<Component> history = loadHistory();
             compact(history);
-            openAppendWriter();
+            openAppendChannel();
             Runtime.getRuntime().addShutdownHook(new Thread(ChatHistoryStore::close, "ChatLookup-history-close"));
             if (history.isEmpty()) {
                 return;
@@ -73,16 +77,31 @@ public final class ChatHistoryStore {
     }
 
     public static synchronized void append(Component content) {
-        if (disabled || appendWriter == null) {
+        if (disabled || appendChannel == null || !ChatLookup.isHistorySaveEnabled()) {
             return;
         }
         try {
-            appendWriter.write(serialize(content));
-            appendWriter.newLine();
-            appendWriter.flush();
+            lastLineStart = appendChannel.size();
+            appendChannel.position(lastLineStart);
+            writeLine(serialize(content));
         } catch (IOException e) {
             disabled = true;
             LOGGER.warn("[ChatLookup] Could not append to chat history; persistence disabled for this session", e);
+            close();
+        }
+    }
+
+    public static synchronized void replaceLast(Component content) {
+        if (disabled || appendChannel == null || lastLineStart < 0 || !ChatLookup.isHistorySaveEnabled()) {
+            return;
+        }
+        try {
+            appendChannel.truncate(lastLineStart);
+            appendChannel.position(lastLineStart);
+            writeLine(serialize(content));
+        } catch (IOException e) {
+            disabled = true;
+            LOGGER.warn("[ChatLookup] Could not rewrite the chat history; persistence disabled for this session", e);
             close();
         }
     }
@@ -93,8 +112,8 @@ public final class ChatHistoryStore {
         }
         try {
             close();
-            appendWriter = Files.newBufferedWriter(HISTORY_FILE, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            appendChannel = FileChannel.open(HISTORY_FILE,
+                    StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
             disabled = true;
             LOGGER.warn("[ChatLookup] Could not clear the chat history file; persistence disabled for this session", e);
@@ -141,12 +160,20 @@ public final class ChatHistoryStore {
         }
     }
 
-    private static synchronized void openAppendWriter() throws IOException {
-        appendWriter = Files.newBufferedWriter(HISTORY_FILE, StandardCharsets.UTF_8,
-                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    private static synchronized void openAppendChannel() throws IOException {
+        appendChannel = FileChannel.open(HISTORY_FILE, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        appendChannel.position(appendChannel.size());
+    }
+
+    private static void writeLine(String line) throws IOException {
+        ByteBuffer buffer = ByteBuffer.wrap((line + "\n").getBytes(StandardCharsets.UTF_8));
+        while (buffer.hasRemaining()) {
+            appendChannel.write(buffer);
+        }
     }
 
     private static String serialize(Component text) {
+        text = MessageDecorator.stripHeadSpacer(text);
         JsonElement json = ComponentSerialization.CODEC.encodeStart(JsonOps.INSTANCE, text).result().orElse(null);
         if (json == null) {
             String plain = ChatFormatting.stripFormatting(text.getString());
@@ -156,13 +183,14 @@ public final class ChatHistoryStore {
     }
 
     private static synchronized void close() {
-        if (appendWriter != null) {
+        if (appendChannel != null) {
             try {
-                appendWriter.close();
+                appendChannel.close();
             } catch (IOException ignored) {
             }
-            appendWriter = null;
+            appendChannel = null;
         }
+        lastLineStart = -1;
     }
 
     private ChatHistoryStore() {

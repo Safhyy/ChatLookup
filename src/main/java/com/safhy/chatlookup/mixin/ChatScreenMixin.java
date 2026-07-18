@@ -1,8 +1,14 @@
 package com.safhy.chatlookup.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.safhy.chatlookup.ChatAnimator;
 import com.safhy.chatlookup.ChatLookup;
+import com.safhy.chatlookup.ChatLookupSettingsScreen;
 import com.safhy.chatlookup.ChatMessageCopier;
+import com.safhy.chatlookup.FlatButton;
 import com.safhy.chatlookup.HighlightRenderer;
+import com.safhy.chatlookup.Icons;
 import com.safhy.chatlookup.SearchFieldWidget;
 import com.safhy.chatlookup.ToggleButton;
 import com.safhy.chatlookup.WidgetSkin;
@@ -45,7 +51,7 @@ public abstract class ChatScreenMixin extends Screen {
     @Unique
     private EditBox chatlookup$searchField;
     @Unique
-    private ToggleButton chatlookup$highlightButton;
+    private FlatButton chatlookup$settingsButton;
     @Unique
     private GuiEventListener chatlookup$focusBeforeClick;
 
@@ -70,11 +76,23 @@ public abstract class ChatScreenMixin extends Screen {
                 Component.literal(".*"), Component.translatable("chatlookup.regex.tooltip"), false,
                 ChatLookup::isRegexMode, () -> ChatLookup.setRegexMode(!ChatLookup.isRegexMode()));
         ToggleButton highlightButton = new ToggleButton(regexButton.getX() + ToggleButton.SIZE + 4, buttonY,
-                Component.literal("A"), Component.translatable("chatlookup.highlight.tooltip"), true,
+                Icons.HIGHLIGHT, Component.translatable("chatlookup.highlight.tooltip"),
+                Component.translatable("chatlookup.highlight.tooltip"), true,
                 ChatLookup::isHighlightEnabled, () -> ChatLookup.setHighlightEnabled(!ChatLookup.isHighlightEnabled()));
-        this.chatlookup$highlightButton = highlightButton;
+        FlatButton settingsButton = new FlatButton(highlightButton.getX() + ToggleButton.SIZE + 4, buttonY,
+                ToggleButton.SIZE, ToggleButton.SIZE,
+                Icons.GEAR, Component.translatable("chatlookup.settings"),
+                Component.translatable("chatlookup.settings.tooltip"), false,
+                () -> {
+                    if (this.minecraft != null) {
+                        ChatLookup.setScreen(this.minecraft,
+                                new ChatLookupSettingsScreen((ChatScreen) (Object) this));
+                    }
+                });
+        this.chatlookup$settingsButton = settingsButton;
         this.addRenderableWidget(regexButton);
         this.addRenderableWidget(highlightButton);
+        this.addRenderableWidget(settingsButton);
     }
 
     //? if >=26.1 {
@@ -89,8 +107,8 @@ public abstract class ChatScreenMixin extends Screen {
         }
         EditBox field = this.chatlookup$searchField;
         if (field != null) {
-            int counterX = this.chatlookup$highlightButton != null
-                    ? this.chatlookup$highlightButton.getX() + ToggleButton.SIZE + 6
+            int counterX = this.chatlookup$settingsButton != null
+                    ? this.chatlookup$settingsButton.getX() + ToggleButton.SIZE + 6
                     : field.getX() + field.getWidth() + 6;
             int counterY = field.getY() + 2;
             if (ChatLookup.isFiltering() && ChatLookup.isQueryInvalid()) {
@@ -168,8 +186,6 @@ public abstract class ChatScreenMixin extends Screen {
     }
     *///?}
 
-    // Toggle buttons must never steal typing focus; before 1.21.9 clicking the
-    // vanilla chat box also does not focus it, so do that by hand as well.
     @Inject(method = "mouseClicked", at = @At("RETURN"))
     //? if >=1.21.9 {
     private void chatlookup$keepTypingFocus(MouseButtonEvent click, boolean doubled, CallbackInfoReturnable<Boolean> cir) {
@@ -190,5 +206,40 @@ public abstract class ChatScreenMixin extends Screen {
     @Inject(method = "removed", at = @At("TAIL"))
     private void chatlookup$clearFilterOnClose(CallbackInfo ci) {
         ChatLookup.setQuery("");
+        ChatAnimator.onChatScreenClosed();
     }
+
+    //? if >=26.1 {
+    @WrapOperation(method = "extractRenderState",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;fill(IIIII)V"))
+    private void chatlookup$animateBackground(GuiGraphicsExtractor graphics, int x0, int y0, int x1, int y1, int color, Operation<Void> original) {
+        ChatAnimator.wrapField(graphics, this.minecraft, () -> original.call(graphics, x0, y0, x1, y1, color));
+    }
+
+    @WrapOperation(method = "extractRenderState",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V"))
+    private void chatlookup$animateWidgets(ChatScreen instance, GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, Operation<Void> original) {
+        ChatAnimator.wrapField(graphics, this.minecraft, () -> original.call(instance, graphics, mouseX, mouseY, delta));
+    }
+    //?} else {
+    /*@WrapOperation(method = "render",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V"))
+    private void chatlookup$animateBackground(GuiGraphics graphics, int x0, int y0, int x1, int y1, int color, Operation<Void> original) {
+        ChatAnimator.wrapField(graphics, this.minecraft, () -> original.call(graphics, x0, y0, x1, y1, color));
+    }
+
+    @WrapOperation(method = "render",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"))
+    private void chatlookup$animateWidgets(ChatScreen instance, GuiGraphics graphics, int mouseX, int mouseY, float delta, Operation<Void> original) {
+        ChatAnimator.wrapField(graphics, this.minecraft, () -> original.call(instance, graphics, mouseX, mouseY, delta));
+    }
+    *///?}
+
+    //? if <1.21.6 {
+    /*@WrapOperation(method = "render",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/EditBox;render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"))
+    private void chatlookup$animateInput(EditBox input, GuiGraphics graphics, int mouseX, int mouseY, float delta, Operation<Void> original) {
+        ChatAnimator.wrapField(graphics, this.minecraft, () -> original.call(input, graphics, mouseX, mouseY, delta));
+    }
+    *///?}
 }

@@ -16,29 +16,26 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.FocusNavigationEvent;
 import net.minecraft.network.chat.Component;
 
-import java.util.function.BooleanSupplier;
-
-public class ToggleButton extends AbstractWidget {
-    public static final int SIZE = 12;
-
-    private final BooleanSupplier state;
-    private final Runnable onToggle;
-    private final boolean markerIcon;
+public class FlatButton extends AbstractWidget {
+    private final Runnable onPress;
+    private final boolean accent;
     private final String[] icon;
 
-    public ToggleButton(int x, int y, Component label, Component tooltip, boolean markerIcon,
-                        BooleanSupplier state, Runnable onToggle) {
-        this(x, y, null, label, tooltip, markerIcon, state, onToggle);
+    public FlatButton(int x, int y, int width, int height, Component label, Component tooltip,
+                      boolean accent, Runnable onPress) {
+        this(x, y, width, height, null, label, tooltip, accent, onPress);
     }
 
-    public ToggleButton(int x, int y, String[] icon, Component label, Component tooltip, boolean markerIcon,
-                        BooleanSupplier state, Runnable onToggle) {
-        super(x, y, SIZE, SIZE, label);
+    /** Icon variant: draws the pixel icon instead of text; {@code label} is kept for narration. */
+    public FlatButton(int x, int y, int width, int height, String[] icon, Component label, Component tooltip,
+                      boolean accent, Runnable onPress) {
+        super(x, y, width, height, label);
         this.icon = icon;
-        this.state = state;
-        this.onToggle = onToggle;
-        this.markerIcon = markerIcon;
-        this.setTooltip(Tooltip.create(tooltip));
+        this.onPress = onPress;
+        this.accent = accent;
+        if (tooltip != null) {
+            this.setTooltip(Tooltip.create(tooltip));
+        }
     }
 
     @Override
@@ -48,7 +45,7 @@ public class ToggleButton extends AbstractWidget {
     /*public void onClick(double mouseX, double mouseY) {
     *///?}
         this.playDownSound(Minecraft.getInstance().getSoundManager());
-        this.onToggle.run();
+        this.onPress.run();
     }
 
     @Override
@@ -62,30 +59,30 @@ public class ToggleButton extends AbstractWidget {
     //?} else {
     /*protected void renderWidget(GuiGraphics context, int mouseX, int mouseY, float delta) {
     *///?}
-        boolean active = this.state.getAsBoolean();
         int x1 = this.getX();
         int y1 = this.getY();
         int x2 = x1 + this.width;
         int y2 = y1 + this.height;
 
-        int background = active ? 0xF02A2306 : (this.isHovered() ? 0xE81C1C22 : 0xDC121216);
-        int border = active ? WidgetSkin.ACCENT : (this.isHovered() ? WidgetSkin.BORDER_HOVER : WidgetSkin.BORDER_IDLE);
-        WidgetSkin.drawPanel(context, x1, y1, x2, y2, background, border);
-
+        int background;
+        int border;
         int labelColor;
-        if (this.markerIcon) {
-            WidgetSkin.fillRounded(context, x1 + 2, y1 + 2, x2 - 2, y2 - 2, active ? 0xB4FFE14D : 0x34FFE14D);
-            labelColor = active ? 0xFF1E1A05 : WidgetSkin.LABEL_IDLE;
+        if (this.accent) {
+            background = this.isHovered() ? 0xF03A3008 : 0xF02A2306;
+            border = WidgetSkin.ACCENT;
+            labelColor = 0xFFFFDE5C;
         } else {
-            labelColor = active ? 0xFFFFDE5C : (this.isHovered() ? 0xFFFFFFFF : WidgetSkin.LABEL_IDLE);
+            background = this.isHovered() ? 0xE81C1C22 : 0xDC121216;
+            border = this.isHovered() ? WidgetSkin.BORDER_HOVER : WidgetSkin.BORDER_IDLE;
+            labelColor = this.isHovered() ? 0xFFFFFFFF : WidgetSkin.LABEL_IDLE;
         }
+        WidgetSkin.drawPanel(context, x1, y1, x2, y2, background, border);
 
         if (this.icon != null) {
             Icons.drawCentered(context, this.icon, x1, y1, this.width, this.height, labelColor);
             return;
         }
         Minecraft client = Minecraft.getInstance();
-
         int glyphWidth = client.font.width(this.getMessage()) - 1;
         int textX = x1 + (this.width - glyphWidth) / 2;
         int textY = y1 + (this.height - 8) / 2 + 1;

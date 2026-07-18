@@ -3,16 +3,24 @@
   "id": "chatlookup",
   "version": "${version}",
   "name": "ChatLookup",
-  "description": "Adds a search box above the chat input that filters visible chat messages as you type.",
+  "description": "Your all-in-one chat utility mod!",
   "authors": [
     "Safhy"
   ],
-  "license": "GPL-3.0-or-later",
+  "license": "GPL-3.0",
+  "contact": {
+		"sources": "https://github.com/Safhyy/ChatLookup",
+		"homepage": "https://modrinth.com/mod/chatlookup",
+		"issues": "https://github.com/Safhyy/ChatLookup/issues"
+	},
   "icon": "assets/chatlookup/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
       "com.safhy.chatlookup.ChatLookup"
+    ],
+    "modmenu": [
+      "com.safhy.chatlookup.ModMenuIntegration"
     ]
   },
   "mixins": [

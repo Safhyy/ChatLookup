@@ -33,6 +33,9 @@ public final class ChatMessageCopier {
     private static String popupSnippet = "";
 
     public static boolean copyMessageAt(Minecraft minecraft, double mouseX, double mouseY, int windowHeight) {
+        if (!ChatLookup.isCopyEnabled()) {
+            return false;
+        }
         ChatComponent chatHud = ChatLookup.getChat(minecraft);
         ChatHudAccessor hud = (ChatHudAccessor) chatHud;
         if (minecraft.options.chatVisibility().get() == ChatVisiblity.HIDDEN) {
@@ -85,8 +88,8 @@ public final class ChatMessageCopier {
     }
 
     private static boolean copy(Minecraft minecraft, GuiMessage line) {
-        String stripped = ChatFormatting.stripFormatting(line.content().getString());
-        String text = stripped == null ? "" : stripped;
+        String stripped = ChatFormatting.stripFormatting(MessageDecorator.stripForCopy(line.content()).getString());
+        String text = stripped == null ? "" : stripped.strip();
         if (text.isBlank()) {
             return false;
         }
@@ -141,9 +144,10 @@ public final class ChatMessageCopier {
         int y2 = screenHeight - 36 + Math.round(slide);
         int y1 = y2 - panelHeight;
 
+        int borderRgb = ChatLookup.getCopyBorderColor();
         int backgroundColor = (int) (alpha * 0xF0) << 24 | 0x100010;
-        int borderColor = (int) (alpha * 0x80) << 24 | 0x55FF55;
-        int accentColor = (int) (alpha * 0xFF) << 24 | 0x55FF55;
+        int borderColor = (int) (alpha * 0x80) << 24 | borderRgb;
+        int accentColor = (int) (alpha * 0xFF) << 24 | borderRgb;
         int titleColor = (int) (alpha * 0xFF) << 24 | 0xFFFFFF;
         int snippetColor = (int) (alpha * 0xFF) << 24 | 0xAAAAAA;
 
