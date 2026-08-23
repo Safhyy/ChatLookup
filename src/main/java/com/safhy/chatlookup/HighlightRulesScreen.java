@@ -42,7 +42,7 @@ public class HighlightRulesScreen extends Screen {
     private int addY;
 
     public HighlightRulesScreen(Screen parent) {
-        super(Component.translatable("chatlookup.words"));
+        super(Component.literal("Highlighted words"));
         this.parent = parent;
     }
 
@@ -68,19 +68,19 @@ public class HighlightRulesScreen extends Screen {
         this.addY = rowsTop + MAX_VISIBLE * ROW_H + 6;
         boolean full = isFull();
         FlatButton addButton = new FlatButton(this.panelX + 8, this.addY, SMALL, SMALL, Icons.PLUS,
-                Component.translatable("chatlookup.words.add"),
-                full ? limitMessage() : Component.translatable("chatlookup.words.add"), true, this::addRule);
+                Component.literal("Add a word"),
+                full ? limitMessage() : Component.literal("Add a word"), true, this::addRule);
         addButton.active = !full;
         this.addButton = addButton;
         this.addRenderableWidget(addButton);
 
         FlatButton done = new FlatButton(this.panelX + (this.panelW - 60) / 2, this.addY + SMALL + 6, 60, 14,
-                Component.translatable("chatlookup.settings.done"), null, true, this::onClose);
+                Component.literal("Done"), null, true, this::onClose);
         this.controls.add(done);
         this.addRenderableWidget(done);
 
         SearchFieldWidget hexField = new SearchFieldWidget(this.font, 0, 0,
-                ColorPickerOverlay.HEX_W, 12, Component.translatable("chatlookup.settings.hex"));
+                ColorPickerOverlay.HEX_W, 12, Component.literal("Hex color"));
         hexField.setHint(Component.literal("#RRGGBB").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         this.picker = new ColorPickerOverlay(this.width, this.height, hexField, () -> {
             setControlsActive(true);
@@ -94,9 +94,9 @@ public class HighlightRulesScreen extends Screen {
         int x = this.panelX + 8;
 
         EditBox word = new SearchFieldWidget(this.font, x, y, WORD_W, SMALL,
-                Component.translatable("chatlookup.words.word"));
+                Component.literal("Word or phrase"));
         word.setMaxLength(128);
-        word.setHint(Component.translatable("chatlookup.words.word")
+        word.setHint(Component.literal("Word or phrase")
                 .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         word.setValue(rule.text());
         word.setResponder(rule::setText);
@@ -104,48 +104,48 @@ public class HighlightRulesScreen extends Screen {
         this.addRenderableWidget(word);
         x += WORD_W + GAP;
 
-        ColorSwatchButton swatch = new ColorSwatchButton(x, y, Component.translatable("chatlookup.words.color"),
+        ColorSwatchButton swatch = new ColorSwatchButton(x, y, Component.literal("Word color"),
                 rule::color, () -> openPicker(rule));
         this.controls.add(swatch);
         this.addRenderableWidget(swatch);
         x += ColorSwatchButton.WIDTH + GAP;
 
-        x = addToggle(x, y, Component.literal("B"), "chatlookup.words.bold", rule::bold,
+        x = addToggle(x, y, Component.literal("B"), "Bold", rule::bold,
                 () -> rule.setBold(!rule.bold()));
-        x = addToggle(x, y, Component.literal("I"), "chatlookup.words.italic", rule::italic,
+        x = addToggle(x, y, Component.literal("I"), "Italic", rule::italic,
                 () -> rule.setItalic(!rule.italic()));
-        x = addToggle(x, y, Component.literal("U"), "chatlookup.words.underline", rule::underline,
+        x = addToggle(x, y, Component.literal("U"), "Underline", rule::underline,
                 () -> rule.setUnderline(!rule.underline()));
-        x = addToggle(x, y, Component.literal("S"), "chatlookup.words.strikethrough", rule::strikethrough,
+        x = addToggle(x, y, Component.literal("S"), "Strikethrough", rule::strikethrough,
                 () -> rule.setStrikethrough(!rule.strikethrough()));
         x += 2;
 
         ToggleButton regex = new ToggleButton(x, y, Component.literal(".*"),
-                Component.translatable("chatlookup.words.regex"), false,
+                Component.literal("Regex mode"), false,
                 rule::regex, () -> rule.setRegex(!rule.regex()));
         this.controls.add(regex);
         this.addRenderableWidget(regex);
         x += SMALL + 2;
 
         ToggleButton sound = new ToggleButton(x, y, Icons.SOUND,
-                Component.translatable("chatlookup.words.sound"),
-                Component.translatable("chatlookup.words.sound"), false,
+                Component.literal("Play a sound"),
+                Component.literal("Play a sound"), false,
                 rule::sound, () -> rule.setSound(!rule.sound()));
         this.controls.add(sound);
         this.addRenderableWidget(sound);
         x += SMALL + GAP;
 
         FlatButton delete = new FlatButton(x, y, SMALL, SMALL, Icons.CLOSE,
-                Component.translatable("chatlookup.words.remove"),
-                Component.translatable("chatlookup.words.remove"), false,
+                Component.literal("Remove"),
+                Component.literal("Remove"), false,
                 () -> removeRule(rule));
         this.controls.add(delete);
         this.addRenderableWidget(delete);
     }
 
-    private int addToggle(int x, int y, Component label, String tooltipKey,
+    private int addToggle(int x, int y, Component label, String tooltip,
                           java.util.function.BooleanSupplier state, Runnable onToggle) {
-        ToggleButton button = new ToggleButton(x, y, label, Component.translatable(tooltipKey), false,
+        ToggleButton button = new ToggleButton(x, y, label, Component.literal(tooltip), false,
                 state, onToggle);
         this.controls.add(button);
         this.addRenderableWidget(button);
@@ -157,7 +157,7 @@ public class HighlightRulesScreen extends Screen {
     }
 
     private static Component limitMessage() {
-        return Component.translatable("chatlookup.words.limit", HighlightRules.MAX_RULES);
+        return Component.literal("Word limit reached (" + HighlightRules.MAX_RULES + ")");
     }
 
     private void addRule() {
@@ -177,7 +177,7 @@ public class HighlightRulesScreen extends Screen {
 
     private void openPicker(HighlightRule rule) {
         setControlsActive(false);
-        this.picker.open(Component.translatable("chatlookup.words.color"), rule.color(),
+        this.picker.open(Component.literal("Word color"), rule.color(),
                 HighlightRule.DEFAULT_COLOR, rule::setColor);
     }
 
@@ -242,7 +242,7 @@ public class HighlightRulesScreen extends Screen {
         List<HighlightRule> rules = HighlightRules.rules();
         int rowsTop = this.panelY + 20;
         if (rules.isEmpty()) {
-            WidgetSkin.text(context, this.font, Component.translatable("chatlookup.words.empty"),
+            WidgetSkin.text(context, this.font, Component.literal("No words yet - press + to add one."),
                     this.panelX + 8, rowsTop + 4, HINT_COLOR, false);
             return;
         }

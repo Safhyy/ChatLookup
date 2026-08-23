@@ -41,7 +41,7 @@ public class CommandMacrosScreen extends Screen {
     private int addY;
 
     public CommandMacrosScreen(Screen parent) {
-        super(Component.translatable("chatlookup.macros"));
+        super(Component.literal("Command macros"));
         this.parent = parent;
     }
 
@@ -66,14 +66,14 @@ public class CommandMacrosScreen extends Screen {
         this.addY = rowsTop + MAX_VISIBLE * ROW_H + 6;
         boolean full = isFull();
         FlatButton addButton = new FlatButton(this.panelX + 8, this.addY, SMALL, SMALL, Icons.PLUS,
-                Component.translatable("chatlookup.macros.add"),
-                full ? limitMessage() : Component.translatable("chatlookup.macros.add"), true, this::addMacro);
+                Component.literal("Add a macro"),
+                full ? limitMessage() : Component.literal("Add a macro"), true, this::addMacro);
         addButton.active = !full;
         this.controls.add(addButton);
         this.addRenderableWidget(addButton);
 
         FlatButton done = new FlatButton(this.panelX + (this.panelW - 60) / 2, this.addY + SMALL + 6, 60, 14,
-                Component.translatable("chatlookup.settings.done"), null, true, this::onClose);
+                Component.literal("Done"), null, true, this::onClose);
         this.controls.add(done);
         this.addRenderableWidget(done);
     }
@@ -82,9 +82,9 @@ public class CommandMacrosScreen extends Screen {
         int x = this.panelX + 8;
 
         EditBox command = new SearchFieldWidget(this.font, x, y, COMMAND_W, SMALL,
-                Component.translatable("chatlookup.macros.command"));
+                Component.literal("Command or message"));
         command.setMaxLength(CommandMacros.MAX_COMMAND_LENGTH);
-        command.setHint(Component.translatable("chatlookup.macros.hint")
+        command.setHint(Component.literal("/command or a message")
                 .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         command.setValue(macro.command());
         command.setResponder(macro::setCommand);
@@ -93,15 +93,15 @@ public class CommandMacrosScreen extends Screen {
         x += COMMAND_W + GAP;
 
         FlatButton bind = new FlatButton(x, y, BIND_W, SMALL, bindLabel(macro),
-                Component.translatable("chatlookup.macros.bind"), macro.isBound(),
+                Component.literal("Click, then press a key (Esc unbinds)"), macro.isBound(),
                 () -> startListening(macro));
         this.controls.add(bind);
         this.addRenderableWidget(bind);
         x += BIND_W + GAP;
 
         FlatButton delete = new FlatButton(x, y, SMALL, SMALL, Icons.CLOSE,
-                Component.translatable("chatlookup.macros.remove"),
-                Component.translatable("chatlookup.macros.remove"), false,
+                Component.literal("Remove"),
+                Component.literal("Remove"), false,
                 () -> removeMacro(macro));
         this.controls.add(delete);
         this.addRenderableWidget(delete);
@@ -109,7 +109,7 @@ public class CommandMacrosScreen extends Screen {
 
     private Component bindLabel(CommandMacro macro) {
         if (macro == this.listening) {
-            return Component.translatable("chatlookup.macros.listening");
+            return Component.literal("...");
         }
         return macro.keyLabel();
     }
@@ -125,7 +125,7 @@ public class CommandMacrosScreen extends Screen {
     }
 
     private static Component limitMessage() {
-        return Component.translatable("chatlookup.macros.limit", CommandMacros.MAX_MACROS);
+        return Component.literal("Macro limit reached (" + CommandMacros.MAX_MACROS + ")");
     }
 
     private void addMacro() {
@@ -195,7 +195,7 @@ public class CommandMacrosScreen extends Screen {
         List<CommandMacro> macros = CommandMacros.macros();
         int rowsTop = this.panelY + 20;
         if (macros.isEmpty()) {
-            WidgetSkin.text(context, this.font, Component.translatable("chatlookup.macros.empty"),
+            WidgetSkin.text(context, this.font, Component.literal("No macros yet - press + to add one."),
                     this.panelX + 8, rowsTop + 4, HINT_COLOR, false);
             return;
         }

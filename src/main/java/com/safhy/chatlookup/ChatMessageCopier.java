@@ -49,7 +49,7 @@ public final class ChatMessageCopier {
     private static long copiedAt = Long.MIN_VALUE;
     private static long popupShownAt = Long.MIN_VALUE;
     private static String popupSnippet = "";
-    private static Component popupTitle = Component.translatable("chatlookup.copied.title");
+    private static Component popupTitle = Component.literal("Message copied!");
 
     private static GuiMessage anchor;
 
@@ -139,7 +139,7 @@ public final class ChatMessageCopier {
             return false;
         }
         minecraft.keyboardHandler.setClipboard(text);
-        popupTitle = Component.translatable("chatlookup.copied.title");
+        popupTitle = Component.literal("Message copied!");
         popupSnippet = snippet(text);
         popupShownAt = now();
         copiedAt = popupShownAt;
@@ -181,7 +181,7 @@ public final class ChatMessageCopier {
             return false;
         }
         minecraft.keyboardHandler.setClipboard(out.toString());
-        popupTitle = Component.translatable("chatlookup.copied.title.multi", copied);
+        popupTitle = Component.literal(copied + " messages copied!");
         popupSnippet = snippet(firstText);
         popupShownAt = now();
         copiedAt = popupShownAt;
@@ -269,8 +269,8 @@ public final class ChatMessageCopier {
             return null;
         }
         return copied
-                ? Component.translatable("chatlookup.copy.hint.copied")
-                : Component.translatable("chatlookup.copy.hint");
+                ? Component.literal("Copied!")
+                : Component.literal("Left-click to copy");
     }
 
     //? if >=26.1 {

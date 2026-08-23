@@ -150,7 +150,7 @@ public final class JumpToContext {
     //?} else {
     /*private static void renderTooltip(GuiGraphics context, Minecraft minecraft, int mouseX, int mouseY) {
     *///?}
-        Component label = Component.translatable("chatlookup.jump.tooltip");
+        Component label = Component.literal("Jump to message");
         //? if >=1.21.6 {
         context.setTooltipForNextFrame(minecraft.font, label, mouseX, mouseY);
         //?} else {

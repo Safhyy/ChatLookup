@@ -69,9 +69,9 @@ public abstract class ChatScreenMixin extends Screen {
     @Inject(method = "init", at = @At("TAIL"))
     private void chatlookup$addSearchField(CallbackInfo ci) {
         EditBox field = new SearchFieldWidget(this.font, 4, this.height - 30,
-                SEARCH_FIELD_WIDTH, 12, Component.translatable("chatlookup.search"));
+                SEARCH_FIELD_WIDTH, 12, Component.literal("Chat search"));
         field.setMaxLength(256);
-        field.setHint(Component.translatable("chatlookup.search.hint")
+        field.setHint(Component.literal("Search...")
                 .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         field.setValue(ChatLookup.getQuery());
         field.setResponder(ChatLookup::setQuery);
@@ -80,25 +80,25 @@ public abstract class ChatScreenMixin extends Screen {
 
         int buttonY = this.height - 30;
         ToggleButton regexButton = new ToggleButton(field.getX() + field.getWidth() + 4, buttonY,
-                Component.literal(".*"), Component.translatable("chatlookup.regex.tooltip"), false,
+                Component.literal(".*"), Component.literal("Regex mode"), false,
                 ChatLookup::isRegexMode, () -> ChatLookup.setRegexMode(!ChatLookup.isRegexMode()));
         int nextX = regexButton.getX() + ToggleButton.SIZE + 4;
         ToggleButton invertButton = null;
         if (ChatLookup.isInvertButtonVisible()) {
             invertButton = new ToggleButton(nextX, buttonY,
-                    Icons.INVERT, Component.translatable("chatlookup.invert.tooltip"),
-                    Component.translatable("chatlookup.invert.tooltip"), false,
+                    Icons.INVERT, Component.literal("Inverted search (hide matches)"),
+                    Component.literal("Inverted search (hide matches)"), false,
                     ChatLookup::isInvertSearch, () -> ChatLookup.setInvertSearch(!ChatLookup.isInvertSearch()));
             nextX += ToggleButton.SIZE + 4;
         }
         ToggleButton highlightButton = new ToggleButton(nextX, buttonY,
-                Icons.HIGHLIGHT, Component.translatable("chatlookup.highlight.tooltip"),
-                Component.translatable("chatlookup.highlight.tooltip"), true,
+                Icons.HIGHLIGHT, Component.literal("Highlight matches in chat"),
+                Component.literal("Highlight matches in chat"), true,
                 ChatLookup::isHighlightEnabled, () -> ChatLookup.setHighlightEnabled(!ChatLookup.isHighlightEnabled()));
         FlatButton settingsButton = new FlatButton(highlightButton.getX() + ToggleButton.SIZE + 4, buttonY,
                 ToggleButton.SIZE, ToggleButton.SIZE,
-                Icons.GEAR, Component.translatable("chatlookup.settings"),
-                Component.translatable("chatlookup.settings.tooltip"), false,
+                Icons.GEAR, Component.literal("ChatLookup Settings"),
+                Component.literal("ChatLookup settings"), false,
                 () -> {
                     if (this.minecraft != null) {
                         ChatLookup.setScreen(this.minecraft,
@@ -140,7 +140,7 @@ public abstract class ChatScreenMixin extends Screen {
             if (ChatLookup.isFiltering() && ChatLookup.isQueryInvalid()) {
                 field.setTextColor(TEXT_COLOR_NO_MATCH);
                 WidgetSkin.text(context, this.font,
-                        Component.translatable("chatlookup.regex.invalid"), counterX, counterY, TEXT_COLOR_NO_MATCH, true);
+                        Component.literal("invalid regex"), counterX, counterY, TEXT_COLOR_NO_MATCH, true);
             } else if (ChatLookup.isFiltering()) {
                 ChatComponent chatHud = ChatLookup.getChat(this.minecraft);
                 int matched = ChatLookup.getMatchedCount(chatHud);
@@ -148,7 +148,7 @@ public abstract class ChatScreenMixin extends Screen {
 
                 field.setTextColor(matched > 0 ? EditBox.DEFAULT_TEXT_COLOR : TEXT_COLOR_NO_MATCH);
 
-                Component counter = Component.translatable("chatlookup.matches", matched, total);
+                Component counter = Component.literal(matched + "/" + total);
                 WidgetSkin.text(context, this.font, counter, counterX, counterY, matched > 0 ? 0xFFA0FFA0 : TEXT_COLOR_NO_MATCH, true);
 
                 if (ChatLookup.isHighlightEnabled()) {
@@ -161,8 +161,7 @@ public abstract class ChatScreenMixin extends Screen {
         }
 
         ChatMessageCopier.renderAnchor(context, this.minecraft, this.height);
-        MathPreview.render(context, this.font, this.width, this.input,
-                field != null ? field.getY() : this.input.getY());
+        MathPreview.render(context, this.font, this.width, this.input);
         if (this.chatlookup$scrollbar != null) {
             this.chatlookup$scrollbar.updateBounds();
         }

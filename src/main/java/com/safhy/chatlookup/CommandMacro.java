@@ -35,7 +35,7 @@ public final class CommandMacro {
 
     public Component keyLabel() {
         if (!isBound()) {
-            return Component.translatable("chatlookup.macros.unbound");
+            return Component.literal("None");
         }
         return InputConstants.Type.KEYSYM.getOrCreate(this.key).getDisplayName();
     }

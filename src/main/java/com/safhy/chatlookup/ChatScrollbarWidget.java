@@ -34,7 +34,7 @@ public class ChatScrollbarWidget extends AbstractWidget {
     private double grabOffset;
 
     public ChatScrollbarWidget(Minecraft minecraft, Runnable focusRestore) {
-        super(0, 0, 3, 1, Component.translatable("chatlookup.scrollbar"));
+        super(0, 0, 3, 1, Component.literal("Chat scrollbar"));
         this.minecraft = minecraft;
         this.focusRestore = focusRestore;
         this.visible = false;

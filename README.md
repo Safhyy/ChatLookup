@@ -1,6 +1,6 @@
 # ChatLookup
 
-A client-side all-in-one chat utility mod!
+Your all-in-one chat utility mod!
 
 ## Features
 
@@ -25,8 +25,6 @@ A client-side all-in-one chat utility mod!
 **Math preview** - type an equation like `2+2` into the chat box and the answer pops up above it. Works mid-sentence too, and pressing `Tab` swaps the equation for the result. Supports `+`, `-`, `*`, `/` and brackets.
 
 **And many more!** - message stacking, timestamps, mention detector, smooth chat animations...
-
-Localized in English, Spanish, Russian and Polish.
 
 ## Configuration
 

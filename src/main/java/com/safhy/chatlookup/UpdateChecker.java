@@ -13,6 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -223,10 +226,10 @@ public final class UpdateChecker {
     private static void announce(Minecraft minecraft, String latest) {
         Component message = Component.empty()
                 .append(Component.literal("[ChatLookup] ").withStyle(style -> style.withColor(PREFIX_COLOR)))
-                .append(Component.translatable("chatlookup.update.available", core(latest))
+                .append(Component.literal("A new version is available: " + core(latest) + ".")
                         .withStyle(ChatFormatting.GRAY))
                 .append(Component.literal("\n"))
-                .append(Component.translatable("chatlookup.update.current", core(currentVersion))
+                .append(Component.literal("You are currently on " + core(currentVersion) + ".")
                         .withStyle(ChatFormatting.GRAY))
                 .append(Component.literal(" "))
                 .append(downloadLink());
@@ -234,28 +237,63 @@ public final class UpdateChecker {
     }
 
     private static Component downloadLink() {
-        try {
-            return Component.translatable("chatlookup.update.download").withStyle(style -> style
-                    .withColor(LINK_COLOR)
-                    .withUnderlined(true)
-                    .withClickEvent(Links.openUrl()));
-        } catch (LinkageError e) {
-            LOGGER.warn("[ChatLookup] Clickable links are unavailable on this Minecraft build, "
-                    + "falling back to a plain URL: {}", e.toString());
+        ClickEvent click = Links.openUrl();
+        if (click == null) {
             return Component.literal(DOWNLOAD_URL).withStyle(style -> style
                     .withColor(LINK_COLOR)
                     .withUnderlined(true));
         }
+        return Component.literal("Download it from Modrinth").withStyle(style -> style
+                .withColor(LINK_COLOR)
+                .withUnderlined(true)
+                .withClickEvent(click));
     }
 
     private static final class Links {
+        //? if >=1.21.5 {
+        private static final MethodHandle LEGACY_CONSTRUCTOR = legacyConstructor();
+
         static ClickEvent openUrl() {
-            //? if >=1.21.5 {
-            return new ClickEvent.OpenUrl(URI.create(DOWNLOAD_URL));
-            //?} else {
-            /*return new ClickEvent(ClickEvent.Action.OPEN_URL, DOWNLOAD_URL);
-            *///?}
+            if (LEGACY_CONSTRUCTOR != null) {
+                try {
+                    return (ClickEvent) LEGACY_CONSTRUCTOR.invoke(ClickEvent.Action.OPEN_URL, DOWNLOAD_URL);
+                } catch (Throwable t) {
+                    LOGGER.warn("[ChatLookup] Could not build a legacy click event, "
+                            + "falling back to a plain URL: {}", t.toString());
+                    return null;
+                }
+            }
+            try {
+                return Modern.openUrl();
+            } catch (LinkageError e) {
+                LOGGER.warn("[ChatLookup] Clickable links are unavailable on this Minecraft build, "
+                        + "falling back to a plain URL: {}", e.toString());
+                return null;
+            }
         }
+
+        private static MethodHandle legacyConstructor() {
+            try {
+                return MethodHandles.lookup().findConstructor(ClickEvent.class,
+                        MethodType.methodType(void.class, ClickEvent.Action.class, String.class));
+            } catch (ReflectiveOperationException | LinkageError e) {
+                return null;
+            }
+        }
+
+        private static final class Modern {
+            static ClickEvent openUrl() {
+                return new ClickEvent.OpenUrl(URI.create(DOWNLOAD_URL));
+            }
+
+            private Modern() {
+            }
+        }
+        //?} else {
+        /*static ClickEvent openUrl() {
+            return new ClickEvent(ClickEvent.Action.OPEN_URL, DOWNLOAD_URL);
+        }
+        *///?}
 
         private Links() {
         }

@@ -41,22 +41,22 @@ public class ChatLookupSettingsScreen extends Screen {
     private static final int REVEAL_SLIDE = 8;
 
     private enum Tab {
-        GENERAL("chatlookup.settings.tab.general"),
-        SEARCH("chatlookup.settings.tab.search"),
-        MESSAGES("chatlookup.settings.tab.messages"),
-        COPYING("chatlookup.settings.tab.copying"),
-        MENTIONS("chatlookup.settings.tab.mentions"),
-        WORDS("chatlookup.settings.tab.words"),
-        MACROS("chatlookup.settings.tab.macros");
+        GENERAL("General"),
+        SEARCH("Search"),
+        MESSAGES("Messages"),
+        COPYING("Copying"),
+        MENTIONS("Mentions"),
+        WORDS("Words"),
+        MACROS("Macros");
 
-        final String key;
+        final String label;
 
-        Tab(String key) {
-            this.key = key;
+        Tab(String label) {
+            this.label = label;
         }
 
         Component label() {
-            return Component.translatable(this.key);
+            return Component.literal(this.label);
         }
     }
 
@@ -82,7 +82,7 @@ public class ChatLookupSettingsScreen extends Screen {
     private int panelH;
 
     public ChatLookupSettingsScreen(Screen parent) {
-        super(Component.translatable("chatlookup.settings"));
+        super(Component.literal("ChatLookup Settings"));
         this.parent = parent;
     }
 
@@ -127,99 +127,99 @@ public class ChatLookupSettingsScreen extends Screen {
 
         int rowsTop = tabY + TAB_H + 4;
         int y = rowsTop;
-        y = addSwitchRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.animation"),
+        y = addSwitchRow(Tab.GENERAL, y, Component.literal("Smooth chat animations"),
                 ChatLookup::isAnimationEnabled, () -> ChatLookup.setAnimationEnabled(!ChatLookup.isAnimationEnabled()));
-        y = addSwitchRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.heads"),
+        y = addSwitchRow(Tab.GENERAL, y, Component.literal("Player heads in chat"),
                 ChatLookup::isHeadsEnabled, () -> ChatLookup.setHeadsEnabled(!ChatLookup.isHeadsEnabled()));
-        y = addSwitchRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.indicator"),
+        y = addSwitchRow(Tab.GENERAL, y, Component.literal("Message security indicator"),
                 () -> !ChatLookup.isIndicatorHidden(), () -> ChatLookup.setIndicatorHidden(!ChatLookup.isIndicatorHidden()));
-        y = addSwitchRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.save_history"),
+        y = addSwitchRow(Tab.GENERAL, y, Component.literal("Save chat history to disk"),
                 ChatLookup::isHistorySaveEnabled, () -> ChatLookup.setHistorySaveEnabled(!ChatLookup.isHistorySaveEnabled()));
-        y = addSwitchRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.scrollbar"),
+        y = addSwitchRow(Tab.GENERAL, y, Component.literal("Chat scrollbar"),
                 ChatLookup::isScrollbarEnabled, () -> ChatLookup.setScrollbarEnabled(!ChatLookup.isScrollbarEnabled()));
-        y = addSwitchRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.math"),
+        y = addSwitchRow(Tab.GENERAL, y, Component.literal("Math preview in the input"),
                 ChatLookup::isMathPreviewEnabled, () -> ChatLookup.setMathPreviewEnabled(!ChatLookup.isMathPreviewEnabled()));
-        y = addChatHeightRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.chat_height"));
-        addSwitchRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.update_check"),
+        y = addChatHeightRow(Tab.GENERAL, y, Component.literal("Max chat height"));
+        addSwitchRow(Tab.GENERAL, y, Component.literal("Check for updates"),
                 ChatLookup::isUpdateCheckEnabled, () -> ChatLookup.setUpdateCheckEnabled(!ChatLookup.isUpdateCheckEnabled()));
 
         y = rowsTop;
-        y = addSwitchRow(Tab.SEARCH, y, Component.translatable("chatlookup.settings.invert_button"),
+        y = addSwitchRow(Tab.SEARCH, y, Component.literal("Show inverted search button"),
                 ChatLookup::isInvertButtonVisible,
                 () -> ChatLookup.setInvertButtonVisible(!ChatLookup.isInvertButtonVisible()));
-        y = addSwitchRow(Tab.SEARCH, y, Component.translatable("chatlookup.settings.jump"),
+        y = addSwitchRow(Tab.SEARCH, y, Component.literal("Jump to surrounding button"),
                 ChatLookup::isJumpButtonEnabled, () -> ChatLookup.setJumpButtonEnabled(!ChatLookup.isJumpButtonEnabled()));
-        y = addSwitchRow(Tab.SEARCH, y, Component.translatable("chatlookup.settings.jump_flash"),
+        y = addSwitchRow(Tab.SEARCH, y, Component.literal("Flash the message after jumping"),
                 ChatLookup::isJumpFlashEnabled, () -> ChatLookup.setJumpFlashEnabled(!ChatLookup.isJumpFlashEnabled()));
-        addColorRow(Tab.SEARCH, y, Component.translatable("chatlookup.settings.highlight_color"),
+        addColorRow(Tab.SEARCH, y, Component.literal("Highlight color"),
                 ChatLookup::getHighlightColor, ChatLookup.DEFAULT_HIGHLIGHT_COLOR, ChatLookup::setHighlightColor);
 
         y = rowsTop;
-        y = addSwitchRow(Tab.MESSAGES, y, Component.translatable("chatlookup.settings.stack"),
+        y = addSwitchRow(Tab.MESSAGES, y, Component.literal("Stack repeated messages"),
                 ChatLookup::isStackingEnabled, () -> ChatLookup.setStackingEnabled(!ChatLookup.isStackingEnabled()));
-        y = addSwitchRow(Tab.MESSAGES, y, Component.translatable("chatlookup.settings.stack_consecutive"),
+        y = addSwitchRow(Tab.MESSAGES, y, Component.literal("Stack only consecutive messages"),
                 ChatLookup::isStackConsecutiveOnly, () -> ChatLookup.setStackConsecutiveOnly(!ChatLookup.isStackConsecutiveOnly()));
-        y = addColorRow(Tab.MESSAGES, y, Component.translatable("chatlookup.settings.stack_color"),
+        y = addColorRow(Tab.MESSAGES, y, Component.literal("Stack counter color"),
                 ChatLookup::getStackColor, ChatLookup.DEFAULT_STACK_COLOR, ChatLookup::setStackColor);
-        y = addSwitchRow(Tab.MESSAGES, y, Component.translatable("chatlookup.settings.timestamps"),
+        y = addSwitchRow(Tab.MESSAGES, y, Component.literal("Show message timestamps"),
                 ChatLookup::isTimestampsEnabled, () -> ChatLookup.setTimestampsEnabled(!ChatLookup.isTimestampsEnabled()));
-        y = addSwitchRow(Tab.MESSAGES, y, Component.translatable("chatlookup.settings.clock12"),
+        y = addSwitchRow(Tab.MESSAGES, y, Component.literal("12-hour clock (AM/PM)"),
                 ChatLookup::isTwelveHourClock, () -> ChatLookup.setTwelveHourClock(!ChatLookup.isTwelveHourClock()));
-        addColorRow(Tab.MESSAGES, y, Component.translatable("chatlookup.settings.timestamp_color"),
+        addColorRow(Tab.MESSAGES, y, Component.literal("Timestamp color"),
                 ChatLookup::getTimestampColor, ChatLookup.DEFAULT_TIMESTAMP_COLOR, ChatLookup::setTimestampColor);
 
         y = rowsTop;
-        y = addSwitchRow(Tab.COPYING, y, Component.translatable("chatlookup.settings.copy"),
+        y = addSwitchRow(Tab.COPYING, y, Component.literal("Copy messages (Ctrl+click)"),
                 ChatLookup::isCopyEnabled, () -> ChatLookup.setCopyEnabled(!ChatLookup.isCopyEnabled()));
-        y = addSwitchRow(Tab.COPYING, y, Component.translatable("chatlookup.settings.copy_multi"),
+        y = addSwitchRow(Tab.COPYING, y, Component.literal("Multi-message copy (Ctrl+Shift+click)"),
                 ChatLookup::isMultiCopyEnabled, () -> ChatLookup.setMultiCopyEnabled(!ChatLookup.isMultiCopyEnabled()));
-        y = addSwitchRow(Tab.COPYING, y, Component.translatable("chatlookup.settings.copy_hint"),
+        y = addSwitchRow(Tab.COPYING, y, Component.literal("Show copy hint on Ctrl"),
                 ChatLookup::isCopyHintEnabled, () -> ChatLookup.setCopyHintEnabled(!ChatLookup.isCopyHintEnabled()));
-        y = addSwitchRow(Tab.COPYING, y, Component.translatable("chatlookup.settings.copy_no_timestamp"),
+        y = addSwitchRow(Tab.COPYING, y, Component.literal("Copy without timestamp"),
                 ChatLookup::isCopyStripTimestamp, () -> ChatLookup.setCopyStripTimestamp(!ChatLookup.isCopyStripTimestamp()));
-        y = addSwitchRow(Tab.COPYING, y, Component.translatable("chatlookup.settings.copy_no_counter"),
+        y = addSwitchRow(Tab.COPYING, y, Component.literal("Copy without stack counter"),
                 ChatLookup::isCopyStripCounter, () -> ChatLookup.setCopyStripCounter(!ChatLookup.isCopyStripCounter()));
-        addColorRow(Tab.COPYING, y, Component.translatable("chatlookup.settings.copy_border_color"),
+        addColorRow(Tab.COPYING, y, Component.literal("Popup border color"),
                 ChatLookup::getCopyBorderColor, ChatLookup.DEFAULT_COPY_BORDER_COLOR, ChatLookup::setCopyBorderColor);
 
         y = rowsTop;
-        y = addSwitchRow(Tab.MENTIONS, y, Component.translatable("chatlookup.settings.mentions"),
+        y = addSwitchRow(Tab.MENTIONS, y, Component.literal("Mention detector"),
                 ChatLookup::isMentionEnabled, () -> ChatLookup.setMentionEnabled(!ChatLookup.isMentionEnabled()));
-        y = addSwitchRow(Tab.MENTIONS, y, Component.translatable("chatlookup.settings.mention_sound"),
+        y = addSwitchRow(Tab.MENTIONS, y, Component.literal("Mention sound"),
                 ChatLookup::isMentionSoundEnabled, () -> ChatLookup.setMentionSoundEnabled(!ChatLookup.isMentionSoundEnabled()));
-        y = addSwitchRow(Tab.MENTIONS, y, Component.translatable("chatlookup.settings.mention_highlight"),
+        y = addSwitchRow(Tab.MENTIONS, y, Component.literal("Recolor mentions"),
                 ChatLookup::isMentionHighlightEnabled, () -> ChatLookup.setMentionHighlightEnabled(!ChatLookup.isMentionHighlightEnabled()));
-        addColorRow(Tab.MENTIONS, y, Component.translatable("chatlookup.settings.mention_color"),
+        addColorRow(Tab.MENTIONS, y, Component.literal("Mention color"),
                 ChatLookup::getMentionColor, ChatLookup.DEFAULT_MENTION_COLOR, ChatLookup::setMentionColor);
 
         y = rowsTop;
-        y = addSwitchRow(Tab.WORDS, y, Component.translatable("chatlookup.settings.word_highlight"),
+        y = addSwitchRow(Tab.WORDS, y, Component.literal("Highlight words in chat"),
                 ChatLookup::isWordHighlightEnabled,
                 () -> ChatLookup.setWordHighlightEnabled(!ChatLookup.isWordHighlightEnabled()));
-        addButtonRow(Tab.WORDS, y, Component.translatable("chatlookup.settings.word_list"),
-                Component.translatable("chatlookup.settings.configure"), () -> {
+        addButtonRow(Tab.WORDS, y, Component.literal("Word list"),
+                Component.literal("Configure"), () -> {
                     if (this.minecraft != null) {
                         ChatLookup.setScreen(this.minecraft, new HighlightRulesScreen(this));
                     }
                 });
 
         y = rowsTop;
-        y = addSwitchRow(Tab.MACROS, y, Component.translatable("chatlookup.settings.macros"),
+        y = addSwitchRow(Tab.MACROS, y, Component.literal("Run command macros"),
                 ChatLookup::isMacrosEnabled, () -> ChatLookup.setMacrosEnabled(!ChatLookup.isMacrosEnabled()));
-        addButtonRow(Tab.MACROS, y, Component.translatable("chatlookup.settings.macro_list"),
-                Component.translatable("chatlookup.settings.configure"), () -> {
+        addButtonRow(Tab.MACROS, y, Component.literal("Macro list"),
+                Component.literal("Configure"), () -> {
                     if (this.minecraft != null) {
                         ChatLookup.setScreen(this.minecraft, new CommandMacrosScreen(this));
                     }
                 });
 
         FlatButton done = new FlatButton(this.panelX + (this.panelW - 60) / 2, rowsTop + MAX_ROWS * ROW_H + 4, 60, 14,
-                Component.translatable("chatlookup.settings.done"), null, true, this::onClose);
+                Component.literal("Done"), null, true, this::onClose);
         this.allControls.add(done);
         this.addRenderableWidget(done);
 
         SearchFieldWidget hexField = new SearchFieldWidget(this.font, 0, 0,
-                ColorPickerOverlay.HEX_W, 12, Component.translatable("chatlookup.settings.hex"));
+                ColorPickerOverlay.HEX_W, 12, Component.literal("Hex color"));
         hexField.setHint(Component.literal("#RRGGBB")
                 .withStyle(net.minecraft.ChatFormatting.DARK_GRAY, net.minecraft.ChatFormatting.ITALIC));
         this.picker = new ColorPickerOverlay(this.width, this.height, hexField,
@@ -254,23 +254,23 @@ public class ChatLookupSettingsScreen extends Screen {
 
     private int longestRowLabel() {
         int widest = 0;
-        for (String key : new String[]{
-                "chatlookup.settings.animation", "chatlookup.settings.heads", "chatlookup.settings.indicator",
-                "chatlookup.settings.save_history", "chatlookup.settings.scrollbar", "chatlookup.settings.math",
-                "chatlookup.settings.invert_button", "chatlookup.settings.jump",
-                "chatlookup.settings.jump_flash", "chatlookup.settings.highlight_color",
-                "chatlookup.settings.stack", "chatlookup.settings.stack_consecutive",
-                "chatlookup.settings.stack_color", "chatlookup.settings.timestamps",
-                "chatlookup.settings.clock12", "chatlookup.settings.timestamp_color",
-                "chatlookup.settings.copy", "chatlookup.settings.copy_multi",
-                "chatlookup.settings.copy_hint", "chatlookup.settings.copy_no_timestamp",
-                "chatlookup.settings.copy_no_counter", "chatlookup.settings.copy_border_color",
-                "chatlookup.settings.mentions", "chatlookup.settings.mention_sound",
-                "chatlookup.settings.mention_highlight", "chatlookup.settings.mention_color",
-                "chatlookup.settings.word_highlight", "chatlookup.settings.word_list",
-                "chatlookup.settings.macros", "chatlookup.settings.macro_list",
-                "chatlookup.settings.chat_height", "chatlookup.settings.update_check"}) {
-            widest = Math.max(widest, this.font.width(Component.translatable(key)));
+        for (String label : new String[]{
+                "Smooth chat animations", "Player heads in chat", "Message security indicator",
+                "Save chat history to disk", "Chat scrollbar", "Math preview in the input",
+                "Show inverted search button", "Jump to surrounding button",
+                "Flash the message after jumping", "Highlight color",
+                "Stack repeated messages", "Stack only consecutive messages",
+                "Stack counter color", "Show message timestamps",
+                "12-hour clock (AM/PM)", "Timestamp color",
+                "Copy messages (Ctrl+click)", "Multi-message copy (Ctrl+Shift+click)",
+                "Show copy hint on Ctrl", "Copy without timestamp",
+                "Copy without stack counter", "Popup border color",
+                "Mention detector", "Mention sound",
+                "Recolor mentions", "Mention color",
+                "Highlight words in chat", "Word list",
+                "Run command macros", "Macro list",
+                "Max chat height", "Check for updates"}) {
+            widest = Math.max(widest, this.font.width(Component.literal(label)));
         }
         return widest;
     }
@@ -303,7 +303,7 @@ public class ChatLookupSettingsScreen extends Screen {
         int valueWidth = chatHeightValueWidth();
         SliderWidget slider = new SliderWidget(
                 this.panelX + this.panelW - 8 - SliderWidget.width(valueWidth), y, valueWidth, label,
-                Component.translatable("chatlookup.settings.chat_height.tooltip"),
+                Component.literal("Raises the cap of the vanilla Chat Settings sliders (Focused Height / Unfocused Height)"),
                 ChatLookup.VANILLA_CHAT_HEIGHT, ChatLookup.MAX_CHAT_HEIGHT, ChatLookup.CHAT_HEIGHT_STEP,
                 ChatLookup::getMaxChatHeight, ChatLookup::setMaxChatHeight, ChatLookupConfig::save,
                 ChatLookupSettingsScreen::chatHeightLabel);
@@ -324,7 +324,7 @@ public class ChatLookupSettingsScreen extends Screen {
     }
 
     private static Component chatHeightLabel(int pixels) {
-        return Component.translatable("chatlookup.settings.chat_height.value", pixels);
+        return Component.literal(pixels + " px");
     }
 
     private int addColorRow(Tab tab, int y, Component label,
