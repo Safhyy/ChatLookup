@@ -5,6 +5,7 @@ import com.safhy.chatlookup.ChatAnimator;
 import com.safhy.chatlookup.ChatHeads;
 import com.safhy.chatlookup.ChatLookup;
 import com.safhy.chatlookup.HeadedLine;
+import com.safhy.chatlookup.MessageDecorator;
 import net.minecraft.client.multiplayer.PlayerInfo;
 //? if >=26.1 {
 import net.minecraft.client.multiplayer.chat.GuiMessage;
@@ -34,7 +35,7 @@ public abstract class GuiMessageLineMixin implements AnimatedLine, HeadedLine {
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void chatlookup$stampCreation(CallbackInfo ci) {
-        this.chatlookup$addedMs = Util.getMillis();
+        this.chatlookup$addedMs = MessageDecorator.isRefreshing() ? 0L : Util.getMillis();
         this.chatlookup$headOwner = ChatHeads.claimLineOwner();
         ChatAnimator.onLineCreated();
     }

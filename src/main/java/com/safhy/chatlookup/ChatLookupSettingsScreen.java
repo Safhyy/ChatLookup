@@ -33,7 +33,7 @@ import java.util.function.IntSupplier;
 public class ChatLookupSettingsScreen extends Screen {
     private static final int ROW_H = 16;
     private static final int TAB_H = 14;
-    private static final int MAX_ROWS = 6;
+    private static final int MAX_ROWS = 8;
     private static final int TITLE_COLOR = 0xFFE8E8F0;
     private static final int LABEL_COLOR = 0xFFC8C8D0;
     private static final int REVEAL_MS = 180;
@@ -42,9 +42,12 @@ public class ChatLookupSettingsScreen extends Screen {
 
     private enum Tab {
         GENERAL("chatlookup.settings.tab.general"),
+        SEARCH("chatlookup.settings.tab.search"),
         MESSAGES("chatlookup.settings.tab.messages"),
         COPYING("chatlookup.settings.tab.copying"),
-        MENTIONS("chatlookup.settings.tab.mentions");
+        MENTIONS("chatlookup.settings.tab.mentions"),
+        WORDS("chatlookup.settings.tab.words"),
+        MACROS("chatlookup.settings.tab.macros");
 
         final String key;
 
@@ -67,6 +70,7 @@ public class ChatLookupSettingsScreen extends Screen {
     private final List<AbstractWidget> allControls = new ArrayList<>();
     private final Map<AbstractWidget, Integer> rowBaseY = new IdentityHashMap<>();
     private final List<TabButton> tabButtons = new ArrayList<>();
+    private int tabRowCount = 1;
     private Tab currentTab = Tab.GENERAL;
     private Tab underlineFrom = Tab.GENERAL;
     private long revealStart;
@@ -96,21 +100,29 @@ public class ChatLookupSettingsScreen extends Screen {
 
         int tabsWidth = 2 * (Tab.values().length - 1);
         for (Tab tab : Tab.values()) {
-            tabsWidth += this.font.width(tab.label()) + 10;
+            tabsWidth += tabWidth(tab);
         }
-        this.panelW = Math.max(Math.max(220, tabsWidth + 16), longestRowLabel() + SwitchWidget.WIDTH + 28);
-        this.panelH = 20 + TAB_H + 4 + MAX_ROWS * ROW_H + 4 + 14 + 8;
+        int widest = Math.max(Math.max(220, tabsWidth + 16), longestRowLabel() + chatHeightWidth() + 28);
+        this.panelW = Math.min(widest, Math.max(220, this.width - 8));
+        this.tabRowCount = countTabRows();
+        this.panelH = 20 + this.tabRowCount * TAB_H + 4 + MAX_ROWS * ROW_H + 4 + 14 + 8;
         this.panelX = (this.width - this.panelW) / 2;
         this.panelY = (this.height - this.panelH) / 2;
 
         int tabX = this.panelX + 8;
         int tabY = this.panelY + 18;
+        int tabLimit = this.panelX + this.panelW - 8;
         for (Tab tab : Tab.values()) {
-            TabButton button = new TabButton(tabX, tabY, this.font.width(tab.label()) + 10, TAB_H, tab);
+            int width = tabWidth(tab);
+            if (tabX > this.panelX + 8 && tabX + width > tabLimit) {
+                tabX = this.panelX + 8;
+                tabY += TAB_H;
+            }
+            TabButton button = new TabButton(tabX, tabY, width, TAB_H, tab);
             this.tabButtons.add(button);
             this.allControls.add(button);
             this.addRenderableWidget(button);
-            tabX += button.getWidth() + 2;
+            tabX += width + 2;
         }
 
         int rowsTop = tabY + TAB_H + 4;
@@ -123,7 +135,23 @@ public class ChatLookupSettingsScreen extends Screen {
                 () -> !ChatLookup.isIndicatorHidden(), () -> ChatLookup.setIndicatorHidden(!ChatLookup.isIndicatorHidden()));
         y = addSwitchRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.save_history"),
                 ChatLookup::isHistorySaveEnabled, () -> ChatLookup.setHistorySaveEnabled(!ChatLookup.isHistorySaveEnabled()));
-        addColorRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.highlight_color"),
+        y = addSwitchRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.scrollbar"),
+                ChatLookup::isScrollbarEnabled, () -> ChatLookup.setScrollbarEnabled(!ChatLookup.isScrollbarEnabled()));
+        y = addSwitchRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.math"),
+                ChatLookup::isMathPreviewEnabled, () -> ChatLookup.setMathPreviewEnabled(!ChatLookup.isMathPreviewEnabled()));
+        y = addChatHeightRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.chat_height"));
+        addSwitchRow(Tab.GENERAL, y, Component.translatable("chatlookup.settings.update_check"),
+                ChatLookup::isUpdateCheckEnabled, () -> ChatLookup.setUpdateCheckEnabled(!ChatLookup.isUpdateCheckEnabled()));
+
+        y = rowsTop;
+        y = addSwitchRow(Tab.SEARCH, y, Component.translatable("chatlookup.settings.invert_button"),
+                ChatLookup::isInvertButtonVisible,
+                () -> ChatLookup.setInvertButtonVisible(!ChatLookup.isInvertButtonVisible()));
+        y = addSwitchRow(Tab.SEARCH, y, Component.translatable("chatlookup.settings.jump"),
+                ChatLookup::isJumpButtonEnabled, () -> ChatLookup.setJumpButtonEnabled(!ChatLookup.isJumpButtonEnabled()));
+        y = addSwitchRow(Tab.SEARCH, y, Component.translatable("chatlookup.settings.jump_flash"),
+                ChatLookup::isJumpFlashEnabled, () -> ChatLookup.setJumpFlashEnabled(!ChatLookup.isJumpFlashEnabled()));
+        addColorRow(Tab.SEARCH, y, Component.translatable("chatlookup.settings.highlight_color"),
                 ChatLookup::getHighlightColor, ChatLookup.DEFAULT_HIGHLIGHT_COLOR, ChatLookup::setHighlightColor);
 
         y = rowsTop;
@@ -143,6 +171,10 @@ public class ChatLookupSettingsScreen extends Screen {
         y = rowsTop;
         y = addSwitchRow(Tab.COPYING, y, Component.translatable("chatlookup.settings.copy"),
                 ChatLookup::isCopyEnabled, () -> ChatLookup.setCopyEnabled(!ChatLookup.isCopyEnabled()));
+        y = addSwitchRow(Tab.COPYING, y, Component.translatable("chatlookup.settings.copy_multi"),
+                ChatLookup::isMultiCopyEnabled, () -> ChatLookup.setMultiCopyEnabled(!ChatLookup.isMultiCopyEnabled()));
+        y = addSwitchRow(Tab.COPYING, y, Component.translatable("chatlookup.settings.copy_hint"),
+                ChatLookup::isCopyHintEnabled, () -> ChatLookup.setCopyHintEnabled(!ChatLookup.isCopyHintEnabled()));
         y = addSwitchRow(Tab.COPYING, y, Component.translatable("chatlookup.settings.copy_no_timestamp"),
                 ChatLookup::isCopyStripTimestamp, () -> ChatLookup.setCopyStripTimestamp(!ChatLookup.isCopyStripTimestamp()));
         y = addSwitchRow(Tab.COPYING, y, Component.translatable("chatlookup.settings.copy_no_counter"),
@@ -155,8 +187,31 @@ public class ChatLookupSettingsScreen extends Screen {
                 ChatLookup::isMentionEnabled, () -> ChatLookup.setMentionEnabled(!ChatLookup.isMentionEnabled()));
         y = addSwitchRow(Tab.MENTIONS, y, Component.translatable("chatlookup.settings.mention_sound"),
                 ChatLookup::isMentionSoundEnabled, () -> ChatLookup.setMentionSoundEnabled(!ChatLookup.isMentionSoundEnabled()));
+        y = addSwitchRow(Tab.MENTIONS, y, Component.translatable("chatlookup.settings.mention_highlight"),
+                ChatLookup::isMentionHighlightEnabled, () -> ChatLookup.setMentionHighlightEnabled(!ChatLookup.isMentionHighlightEnabled()));
         addColorRow(Tab.MENTIONS, y, Component.translatable("chatlookup.settings.mention_color"),
                 ChatLookup::getMentionColor, ChatLookup.DEFAULT_MENTION_COLOR, ChatLookup::setMentionColor);
+
+        y = rowsTop;
+        y = addSwitchRow(Tab.WORDS, y, Component.translatable("chatlookup.settings.word_highlight"),
+                ChatLookup::isWordHighlightEnabled,
+                () -> ChatLookup.setWordHighlightEnabled(!ChatLookup.isWordHighlightEnabled()));
+        addButtonRow(Tab.WORDS, y, Component.translatable("chatlookup.settings.word_list"),
+                Component.translatable("chatlookup.settings.configure"), () -> {
+                    if (this.minecraft != null) {
+                        ChatLookup.setScreen(this.minecraft, new HighlightRulesScreen(this));
+                    }
+                });
+
+        y = rowsTop;
+        y = addSwitchRow(Tab.MACROS, y, Component.translatable("chatlookup.settings.macros"),
+                ChatLookup::isMacrosEnabled, () -> ChatLookup.setMacrosEnabled(!ChatLookup.isMacrosEnabled()));
+        addButtonRow(Tab.MACROS, y, Component.translatable("chatlookup.settings.macro_list"),
+                Component.translatable("chatlookup.settings.configure"), () -> {
+                    if (this.minecraft != null) {
+                        ChatLookup.setScreen(this.minecraft, new CommandMacrosScreen(this));
+                    }
+                });
 
         FlatButton done = new FlatButton(this.panelX + (this.panelW - 60) / 2, rowsTop + MAX_ROWS * ROW_H + 4, 60, 14,
                 Component.translatable("chatlookup.settings.done"), null, true, this::onClose);
@@ -178,18 +233,43 @@ public class ChatLookupSettingsScreen extends Screen {
         this.revealStart = Util.getMillis();
     }
 
+    private int tabWidth(Tab tab) {
+        return this.font.width(tab.label()) + 10;
+    }
+
+    private int countTabRows() {
+        int rows = 1;
+        int x = 8;
+        int limit = this.panelW - 8;
+        for (Tab tab : Tab.values()) {
+            int width = tabWidth(tab);
+            if (x > 8 && x + width > limit) {
+                rows++;
+                x = 8;
+            }
+            x += width + 2;
+        }
+        return rows;
+    }
+
     private int longestRowLabel() {
         int widest = 0;
         for (String key : new String[]{
                 "chatlookup.settings.animation", "chatlookup.settings.heads", "chatlookup.settings.indicator",
-                "chatlookup.settings.save_history", "chatlookup.settings.highlight_color",
+                "chatlookup.settings.save_history", "chatlookup.settings.scrollbar", "chatlookup.settings.math",
+                "chatlookup.settings.invert_button", "chatlookup.settings.jump",
+                "chatlookup.settings.jump_flash", "chatlookup.settings.highlight_color",
                 "chatlookup.settings.stack", "chatlookup.settings.stack_consecutive",
                 "chatlookup.settings.stack_color", "chatlookup.settings.timestamps",
                 "chatlookup.settings.clock12", "chatlookup.settings.timestamp_color",
-                "chatlookup.settings.copy", "chatlookup.settings.copy_no_timestamp",
+                "chatlookup.settings.copy", "chatlookup.settings.copy_multi",
+                "chatlookup.settings.copy_hint", "chatlookup.settings.copy_no_timestamp",
                 "chatlookup.settings.copy_no_counter", "chatlookup.settings.copy_border_color",
                 "chatlookup.settings.mentions", "chatlookup.settings.mention_sound",
-                "chatlookup.settings.mention_color"}) {
+                "chatlookup.settings.mention_highlight", "chatlookup.settings.mention_color",
+                "chatlookup.settings.word_highlight", "chatlookup.settings.word_list",
+                "chatlookup.settings.macros", "chatlookup.settings.macro_list",
+                "chatlookup.settings.chat_height", "chatlookup.settings.update_check"}) {
             widest = Math.max(widest, this.font.width(Component.translatable(key)));
         }
         return widest;
@@ -204,6 +284,47 @@ public class ChatLookupSettingsScreen extends Screen {
         this.rowBaseY.put(widget, y);
         this.addRenderableWidget(widget);
         return y + ROW_H;
+    }
+
+    private int addButtonRow(Tab tab, int y, Component label, Component action, Runnable onPress) {
+        this.tabLabels.get(tab).add(new RowLabel(label, y + 3));
+        int width = Math.max(SwitchWidget.WIDTH, this.font.width(action) + 10);
+        FlatButton button = new FlatButton(this.panelX + this.panelW - 8 - width, y, width, SwitchWidget.HEIGHT,
+                action, null, false, onPress);
+        this.tabRows.get(tab).add(button);
+        this.allControls.add(button);
+        this.rowBaseY.put(button, y);
+        this.addRenderableWidget(button);
+        return y + ROW_H;
+    }
+
+    private int addChatHeightRow(Tab tab, int y, Component label) {
+        this.tabLabels.get(tab).add(new RowLabel(label, y + 3));
+        int valueWidth = chatHeightValueWidth();
+        SliderWidget slider = new SliderWidget(
+                this.panelX + this.panelW - 8 - SliderWidget.width(valueWidth), y, valueWidth, label,
+                Component.translatable("chatlookup.settings.chat_height.tooltip"),
+                ChatLookup.VANILLA_CHAT_HEIGHT, ChatLookup.MAX_CHAT_HEIGHT, ChatLookup.CHAT_HEIGHT_STEP,
+                ChatLookup::getMaxChatHeight, ChatLookup::setMaxChatHeight, ChatLookupConfig::save,
+                ChatLookupSettingsScreen::chatHeightLabel);
+        this.tabRows.get(tab).add(slider);
+        this.allControls.add(slider);
+        this.rowBaseY.put(slider, y);
+        this.addRenderableWidget(slider);
+        return y + ROW_H;
+    }
+
+    private int chatHeightValueWidth() {
+        return Math.max(this.font.width(chatHeightLabel(ChatLookup.VANILLA_CHAT_HEIGHT)),
+                this.font.width(chatHeightLabel(ChatLookup.MAX_CHAT_HEIGHT)));
+    }
+
+    private int chatHeightWidth() {
+        return SliderWidget.width(chatHeightValueWidth());
+    }
+
+    private static Component chatHeightLabel(int pixels) {
+        return Component.translatable("chatlookup.settings.chat_height.value", pixels);
     }
 
     private int addColorRow(Tab tab, int y, Component label,
@@ -247,7 +368,7 @@ public class ChatLookupSettingsScreen extends Screen {
         WidgetSkin.drawPanel(context, this.panelX, this.panelY,
                 this.panelX + this.panelW, this.panelY + this.panelH, 0xF4111116, WidgetSkin.BORDER_HOVER);
         WidgetSkin.text(context, this.font, this.title, this.panelX + 8, this.panelY + 6, TITLE_COLOR, false);
-        int tabBarBottom = this.panelY + 18 + TAB_H;
+        int tabBarBottom = this.panelY + 18 + this.tabRowCount * TAB_H;
         context.fill(this.panelX + 8, tabBarBottom, this.panelX + this.panelW - 8, tabBarBottom + 1,
                 WidgetSkin.BORDER_IDLE);
 
@@ -257,11 +378,11 @@ public class ChatLookupSettingsScreen extends Screen {
         TabButton from = buttonFor(this.underlineFrom);
         TabButton to = buttonFor(this.currentTab);
         if (to != null) {
-            int fromX = (from != null ? from : to).getX();
-            int fromW = (from != null ? from : to).getWidth();
-            int lineX = fromX + Math.round((to.getX() - fromX) * glide);
-            int lineW = fromW + Math.round((to.getWidth() - fromW) * glide);
-            context.fill(lineX + 1, tabBarBottom - 1, lineX + lineW - 1, tabBarBottom + 1, WidgetSkin.ACCENT);
+            TabButton origin = from != null ? from : to;
+            int lineX = origin.getX() + Math.round((to.getX() - origin.getX()) * glide);
+            int lineW = origin.getWidth() + Math.round((to.getWidth() - origin.getWidth()) * glide);
+            int lineY = origin.getY() + Math.round((to.getY() - origin.getY()) * glide) + TAB_H;
+            context.fill(lineX + 1, lineY - 1, lineX + lineW - 1, lineY + 1, WidgetSkin.ACCENT);
         }
 
         float reveal = progress(now, this.revealStart, REVEAL_MS);

@@ -22,6 +22,7 @@ import java.util.regex.PatternSyntaxException;
 
 public final class ChatLookup implements ClientModInitializer {
     public static final int HISTORY_LIMIT = 32_768;
+    public static final int LINE_LIMIT = HISTORY_LIMIT * 4;
 
     public static final int DEFAULT_TIMESTAMP_COLOR = 0xFFFFFF;
     public static final int DEFAULT_STACK_COLOR = 0xAAAAAA;
@@ -29,7 +30,15 @@ public final class ChatLookup implements ClientModInitializer {
     public static final int DEFAULT_MENTION_COLOR = 0xFFD24A;
     public static final int DEFAULT_COPY_BORDER_COLOR = 0xFFD24A;
 
+    public static final int VANILLA_CHAT_HEIGHT = 180;
+    public static final int MAX_CHAT_HEIGHT = 720;
+    public static final int CHAT_HEIGHT_STEP = 10;
+
+    private static final int CHAT_HEIGHT_BASE = 20;
+    private static final int CHAT_BOTTOM_MARGIN = 40;
+
     private static final int VISIBLE_REBUILD_BUDGET = 2048;
+    private static final long REFRESH_DELAY_MS = 120;
 
     private static final int MAX_MATCHES_PER_LINE = 128;
     private static final int[] NO_MATCHES = new int[0];
@@ -56,11 +65,24 @@ public final class ChatLookup implements ClientModInitializer {
     private static boolean copyStripCounter = true;
     private static boolean mentionEnabled = true;
     private static boolean mentionSoundEnabled = true;
+    private static boolean mentionHighlightEnabled = true;
+    private static boolean invertSearch;
+    private static boolean invertButtonVisible;
+    private static boolean mathPreviewEnabled = true;
+    private static boolean scrollbarEnabled = true;
+    private static boolean jumpButtonEnabled = true;
+    private static boolean jumpFlashEnabled = true;
+    private static boolean multiCopyEnabled = true;
+    private static boolean copyHintEnabled = true;
+    private static boolean wordHighlightEnabled = true;
+    private static boolean macrosEnabled = true;
+    private static boolean updateCheckEnabled = true;
     private static int timestampColor = DEFAULT_TIMESTAMP_COLOR;
     private static int stackColor = DEFAULT_STACK_COLOR;
     private static int highlightColor = DEFAULT_HIGHLIGHT_COLOR;
     private static int mentionColor = DEFAULT_MENTION_COLOR;
     private static int copyBorderColor = DEFAULT_COPY_BORDER_COLOR;
+    private static int maxChatHeight = VANILLA_CHAT_HEIGHT;
     private static Pattern pattern;
     private static boolean queryInvalid;
 
@@ -68,10 +90,17 @@ public final class ChatLookup implements ClientModInitializer {
     private static int matchedCount;
     private static int totalCount;
     private static int refreshSkip;
+    private static int minimumRebuild;
+    private static int loadedDepth;
+    private static long refreshDueAt;
+    private static int unloadedCount;
 
     @Override
     public void onInitializeClient() {
         ChatLookupConfig.load();
+        HighlightRules.load();
+        CommandMacros.load();
+        UpdateChecker.start();
     }
 
     public static String getQuery() {
@@ -142,6 +171,54 @@ public final class ChatLookup implements ClientModInitializer {
         return mentionSoundEnabled;
     }
 
+    public static boolean isMentionHighlightEnabled() {
+        return mentionHighlightEnabled;
+    }
+
+    public static boolean isInvertSearch() {
+        return invertSearch;
+    }
+
+    public static boolean isInvertButtonVisible() {
+        return invertButtonVisible;
+    }
+
+    public static boolean isMathPreviewEnabled() {
+        return mathPreviewEnabled;
+    }
+
+    public static boolean isScrollbarEnabled() {
+        return scrollbarEnabled;
+    }
+
+    public static boolean isJumpButtonEnabled() {
+        return jumpButtonEnabled;
+    }
+
+    public static boolean isJumpFlashEnabled() {
+        return jumpFlashEnabled;
+    }
+
+    public static boolean isMultiCopyEnabled() {
+        return multiCopyEnabled;
+    }
+
+    public static boolean isCopyHintEnabled() {
+        return copyHintEnabled;
+    }
+
+    public static boolean isWordHighlightEnabled() {
+        return wordHighlightEnabled;
+    }
+
+    public static boolean isMacrosEnabled() {
+        return macrosEnabled;
+    }
+
+    public static boolean isUpdateCheckEnabled() {
+        return updateCheckEnabled;
+    }
+
     public static boolean isQueryInvalid() {
         return queryInvalid;
     }
@@ -174,6 +251,22 @@ public final class ChatLookup implements ClientModInitializer {
         *///?}
     }
 
+    public static net.minecraft.client.multiplayer.chat.ChatListener getChatListener(Minecraft minecraft) {
+        //? if >=26.2 {
+        return minecraft.gui.chatListener();
+        //?} else {
+        /*return minecraft.getChatListener();
+        *///?}
+    }
+
+    public static net.minecraft.client.gui.screens.Screen getScreen(Minecraft minecraft) {
+        //? if >=26.2 {
+        return minecraft.gui.screen();
+        //?} else {
+        /*return minecraft.screen;
+        *///?}
+    }
+
     public static void setScreen(Minecraft minecraft, net.minecraft.client.gui.screens.Screen screen) {
         //? if >=26.2 {
         minecraft.setScreenAndShow(screen);
@@ -198,6 +291,19 @@ public final class ChatLookup implements ClientModInitializer {
         copyStripCounter = boolOf(p, "copy_strip_counter", true);
         mentionEnabled = boolOf(p, "mention_detector", true);
         mentionSoundEnabled = boolOf(p, "mention_sound", true);
+        mentionHighlightEnabled = boolOf(p, "mention_highlight", true);
+        invertButtonVisible = boolOf(p, "invert_button", false);
+        invertSearch = invertButtonVisible && boolOf(p, "invert_search", false);
+        mathPreviewEnabled = boolOf(p, "math_preview", true);
+        scrollbarEnabled = boolOf(p, "chat_scrollbar", true);
+        jumpButtonEnabled = boolOf(p, "jump_to_context", true);
+        jumpFlashEnabled = boolOf(p, "jump_flash", true);
+        multiCopyEnabled = boolOf(p, "copy_multi", true);
+        copyHintEnabled = boolOf(p, "copy_hint", true);
+        wordHighlightEnabled = boolOf(p, "word_highlight", true);
+        macrosEnabled = boolOf(p, "command_macros", true);
+        updateCheckEnabled = boolOf(p, "update_check", true);
+        maxChatHeight = clampChatHeight(intOf(p, "max_chat_height", VANILLA_CHAT_HEIGHT));
         timestampColor = colorOf(p, "timestamp_color", DEFAULT_TIMESTAMP_COLOR);
         stackColor = colorOf(p, "stack_color", DEFAULT_STACK_COLOR);
         highlightColor = colorOf(p, "highlight_color", DEFAULT_HIGHLIGHT_COLOR);
@@ -209,6 +315,18 @@ public final class ChatLookup implements ClientModInitializer {
     private static boolean boolOf(java.util.Properties p, String key, boolean fallback) {
         String value = p.getProperty(key);
         return value == null ? fallback : Boolean.parseBoolean(value);
+    }
+
+    private static int intOf(java.util.Properties p, String key, int fallback) {
+        String value = p.getProperty(key);
+        if (value == null) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 
     private static int colorOf(java.util.Properties p, String key, int fallback) {
@@ -231,7 +349,21 @@ public final class ChatLookup implements ClientModInitializer {
         query = raw;
         queryLowerCase = raw.toLowerCase(Locale.ROOT);
         recompile();
-        refreshChatHud();
+        countsDirty = true;
+        refreshDueAt = System.nanoTime() / 1_000_000L + REFRESH_DELAY_MS;
+    }
+
+    public static void tickPendingRefresh() {
+        if (refreshDueAt != 0 && System.nanoTime() / 1_000_000L >= refreshDueAt) {
+            flushPendingRefresh();
+        }
+    }
+
+    public static void flushPendingRefresh() {
+        if (refreshDueAt != 0) {
+            refreshDueAt = 0;
+            refreshChatHud();
+        }
     }
 
     public static void setRegexMode(boolean enabled) {
@@ -356,6 +488,159 @@ public final class ChatLookup implements ClientModInitializer {
         ChatLookupConfig.save();
     }
 
+    public static void setMentionHighlightEnabled(boolean enabled) {
+        if (mentionHighlightEnabled == enabled) {
+            return;
+        }
+        mentionHighlightEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setInvertSearch(boolean enabled) {
+        if (invertSearch == enabled) {
+            return;
+        }
+        invertSearch = enabled;
+        ChatLookupConfig.save();
+        refreshChatHud();
+    }
+
+    public static void setInvertButtonVisible(boolean visible) {
+        if (invertButtonVisible == visible) {
+            return;
+        }
+        invertButtonVisible = visible;
+        if (!visible) {
+            setInvertSearch(false);
+        }
+        ChatLookupConfig.save();
+    }
+
+    public static void setMathPreviewEnabled(boolean enabled) {
+        if (mathPreviewEnabled == enabled) {
+            return;
+        }
+        mathPreviewEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setScrollbarEnabled(boolean enabled) {
+        if (scrollbarEnabled == enabled) {
+            return;
+        }
+        scrollbarEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setJumpButtonEnabled(boolean enabled) {
+        if (jumpButtonEnabled == enabled) {
+            return;
+        }
+        jumpButtonEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setJumpFlashEnabled(boolean enabled) {
+        if (jumpFlashEnabled == enabled) {
+            return;
+        }
+        jumpFlashEnabled = enabled;
+        if (!enabled) {
+            JumpFlash.clear();
+        }
+        ChatLookupConfig.save();
+    }
+
+    public static void setMultiCopyEnabled(boolean enabled) {
+        if (multiCopyEnabled == enabled) {
+            return;
+        }
+        multiCopyEnabled = enabled;
+        ChatMessageCopier.clearAnchor();
+        ChatLookupConfig.save();
+    }
+
+    public static void setCopyHintEnabled(boolean enabled) {
+        if (copyHintEnabled == enabled) {
+            return;
+        }
+        copyHintEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setWordHighlightEnabled(boolean enabled) {
+        if (wordHighlightEnabled == enabled) {
+            return;
+        }
+        wordHighlightEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setMacrosEnabled(boolean enabled) {
+        if (macrosEnabled == enabled) {
+            return;
+        }
+        macrosEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static void setUpdateCheckEnabled(boolean enabled) {
+        if (updateCheckEnabled == enabled) {
+            return;
+        }
+        updateCheckEnabled = enabled;
+        ChatLookupConfig.save();
+    }
+
+    public static int getMaxChatHeight() {
+        return maxChatHeight;
+    }
+
+    public static void setMaxChatHeight(int pixels) {
+        int value = clampChatHeight(pixels);
+        if (maxChatHeight == value) {
+            return;
+        }
+        maxChatHeight = value;
+        clampChatScroll();
+    }
+
+    public static int chatHeight(double percent) {
+        int span = maxChatHeight - CHAT_HEIGHT_BASE;
+        int height = (int) Math.floor(percent * span) + CHAT_HEIGHT_BASE;
+        return Math.min(height, usableChatHeight());
+    }
+
+    private static int usableChatHeight() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft == null || minecraft.getWindow() == null || minecraft.options == null) {
+            return maxChatHeight;
+        }
+        double scale = minecraft.options.chatScale().get();
+        if (scale <= 0.0) {
+            return maxChatHeight;
+        }
+        int usable = (int) ((minecraft.getWindow().getGuiScaledHeight() - CHAT_BOTTOM_MARGIN) / scale);
+        return Math.max(usable, VANILLA_CHAT_HEIGHT);
+    }
+
+    private static int clampChatHeight(int pixels) {
+        return Math.max(VANILLA_CHAT_HEIGHT, Math.min(pixels, MAX_CHAT_HEIGHT));
+    }
+
+    private static void clampChatScroll() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft == null || minecraft.gui == null) {
+            return;
+        }
+        ChatComponent chatHud = getChat(minecraft);
+        ChatHudAccessor hud = (ChatHudAccessor) chatHud;
+        int max = hud.chatlookup$getVisibleMessages().size() - chatHud.getLinesPerPage();
+        if (hud.chatlookup$getScrolledLines() > max) {
+            hud.chatlookup$setScrolledLines(Math.max(0, max));
+        }
+    }
+
     public static void setTimestampColor(int rgb) {
         timestampColor = rgb & 0xFFFFFF;
     }
@@ -389,18 +674,18 @@ public final class ChatLookup implements ClientModInitializer {
     }
 
     public static boolean matches(GuiMessage line) {
-        if (query.isEmpty()) {
+        if (query.isEmpty() || (regexMode && pattern == null)) {
             return true;
         }
         PlainText plain = plainText(line);
-        if (regexMode) {
-            return pattern == null || pattern.matcher(plain.raw()).find();
-        }
-        return plain.lower().contains(queryLowerCase);
+        boolean hit = regexMode
+                ? pattern.matcher(plain.raw()).find()
+                : plain.lower().contains(queryLowerCase);
+        return invertSearch != hit;
     }
 
     public static int[] findMatches(String raw) {
-        if (query.isEmpty() || queryInvalid) {
+        if (query.isEmpty() || queryInvalid || invertSearch) {
             return NO_MATCHES;
         }
         IntArrayList out = new IntArrayList();
@@ -442,23 +727,119 @@ public final class ChatLookup implements ClientModInitializer {
             if (PLAIN_TEXT_CACHE.size() > HISTORY_LIMIT * 2) {
                 PLAIN_TEXT_CACHE.clear();
             }
-            String stripped = ChatFormatting.stripFormatting(line.content().getString());
-            String raw = stripped == null ? "" : stripped;
-            cached = new PlainText(raw, raw.toLowerCase(Locale.ROOT));
+            String text = line.content().getString();
+            if (text.indexOf(ChatFormatting.PREFIX_CODE) >= 0) {
+                String stripped = ChatFormatting.stripFormatting(text);
+                text = stripped == null ? "" : stripped;
+            }
+            cached = new PlainText(text, text.toLowerCase(Locale.ROOT));
             PLAIN_TEXT_CACHE.put(line, cached);
         }
         return cached;
     }
 
+    public static void trimHistory(ChatComponent chatHud) {
+        ChatHudAccessor hud = (ChatHudAccessor) chatHud;
+        List<GuiMessage> messages = hud.chatlookup$getMessages();
+        boolean trimmed = false;
+        while (messages.size() > HISTORY_LIMIT) {
+            GuiMessage dropped = messages.remove(messages.size() - 1);
+            trimmed = true;
+            if (unloadedCount > 0) {
+                unloadedCount--;
+            } else if (matches(dropped)) {
+                dropOldestEntry(hud.chatlookup$getVisibleMessages());
+            }
+        }
+        if (trimmed) {
+            countsDirty = true;
+            int max = hud.chatlookup$getVisibleMessages().size() - chatHud.getLinesPerPage();
+            if (hud.chatlookup$getScrolledLines() > max) {
+                hud.chatlookup$setScrolledLines(Math.max(0, max));
+            }
+        }
+    }
+
+    private static void dropOldestEntry(List<GuiMessage.Line> lines) {
+        while (!lines.isEmpty()) {
+            if (lines.remove(lines.size() - 1).endOfEntry()) {
+                return;
+            }
+        }
+    }
+
+    public static void requestRebuildDepth(int messages) {
+        minimumRebuild = Math.max(minimumRebuild, messages);
+    }
+
+    public static boolean hasPendingRebuildDepth() {
+        return minimumRebuild > 0;
+    }
+
     public static void budgetedRefresh(ChatComponent chatHud) {
+        budgetedRefresh(chatHud, true);
+    }
+
+    public static void budgetedRefresh(ChatComponent chatHud, boolean keepScroll) {
         countsDirty = true;
         recountIfDirty(chatHud);
-        refreshSkip = Math.max(0, matchedCount - VISIBLE_REBUILD_BUDGET);
+        refreshDueAt = 0;
+        if (!keepScroll) {
+            loadedDepth = 0;
+        }
+        int budget = Math.max(Math.max(VISIBLE_REBUILD_BUDGET, minimumRebuild), loadedDepth);
+        minimumRebuild = 0;
+        loadedDepth = Math.min(budget, matchedCount);
+        refreshSkip = Math.max(0, matchedCount - budget);
+        unloadedCount = refreshSkip;
+        ChatHudAccessor hud = (ChatHudAccessor) chatHud;
+        int scrolled = keepScroll ? hud.chatlookup$getScrolledLines() : 0;
         try {
-            ((ChatHudAccessor) chatHud).chatlookup$refresh();
+            hud.chatlookup$refresh();
         } finally {
             refreshSkip = 0;
         }
+        if (scrolled > 0) {
+            int max = hud.chatlookup$getVisibleMessages().size() - chatHud.getLinesPerPage();
+            hud.chatlookup$setScrolledLines(Math.max(0, Math.min(scrolled, max)));
+        }
+    }
+
+    public static int getUnloadedCount() {
+        return unloadedCount;
+    }
+
+    public static int getLoadedMessageCount(ChatComponent chatHud) {
+        return Math.max(0, getMatchedCount(chatHud) - unloadedCount);
+    }
+
+    public static void ensureLoadedLines(ChatComponent chatHud, int targetLine) {
+        ChatHudAccessor hud = (ChatHudAccessor) chatHud;
+        int loaded = hud.chatlookup$getVisibleMessages().size();
+        int needed = targetLine + chatHud.getLinesPerPage();
+        if (needed <= loaded || unloadedCount <= 0) {
+            return;
+        }
+        int loadedMessages = getLoadedMessageCount(chatHud);
+        int depth = loadedMessages <= 0 || loaded <= 0
+                ? needed
+                : (int) Math.min(HISTORY_LIMIT, Math.ceil((double) needed * loadedMessages / loaded));
+        requestRebuildDepth(Math.min(matchedCount, depth + VISIBLE_REBUILD_BUDGET));
+        budgetedRefresh(chatHud);
+    }
+
+    public static void loadMoreIfAtTop(ChatComponent chatHud) {
+        if (refreshDueAt != 0 || unloadedCount <= 0) {
+            return;
+        }
+        ChatHudAccessor hud = (ChatHudAccessor) chatHud;
+        int lines = hud.chatlookup$getVisibleMessages().size();
+        if (hud.chatlookup$getScrolledLines() + chatHud.getLinesPerPage() < lines) {
+            return;
+        }
+        int loadedMessages = Math.max(1, getLoadedMessageCount(chatHud));
+        requestRebuildDepth(Math.max(loadedMessages * 2, loadedMessages + VISIBLE_REBUILD_BUDGET));
+        budgetedRefresh(chatHud);
     }
 
     public static boolean consumeRefreshSkip() {
@@ -472,7 +853,7 @@ public final class ChatLookup implements ClientModInitializer {
     private static void refreshChatHud() {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft != null && minecraft.gui != null) {
-            budgetedRefresh(getChat(minecraft));
+            budgetedRefresh(getChat(minecraft), false);
         }
     }
 

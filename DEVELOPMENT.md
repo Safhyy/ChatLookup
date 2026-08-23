@@ -2,7 +2,7 @@
 
 | Command | What it does |
 |---|---|
-| `.\gradlew.bat buildAndCollect` | Build **all** versions → jars land in `build/libs/1.1.0/` |
+| `.\gradlew.bat buildAndCollect` | Build **all** versions → jars land in `build/libs/1.2.0/` |
 | `.\gradlew.bat :26.2:build` | Build a **single** version (jar in `versions/26.2/build/libs/`) |
 
 ##  Test in game

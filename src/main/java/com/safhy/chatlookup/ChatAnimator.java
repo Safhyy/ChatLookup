@@ -70,14 +70,16 @@ public final class ChatAnimator {
     /*public static void pushChatPose(GuiGraphics graphics, ChatComponent chatHud) {
     *///?}
         float displacement = chatDisplacement(chatHud);
-        chatPosePushed = displacement != 0;
+        float indent = (float) (JumpToContext.contentShift()
+                * ((ChatHudAccessor) chatHud).chatlookup$getChatScale());
+        chatPosePushed = displacement != 0 || indent != 0;
         if (chatPosePushed) {
             //? if >=1.21.6 {
             graphics.pose().pushMatrix();
-            graphics.pose().translate(0, displacement);
+            graphics.pose().translate(indent, displacement);
             //?} else {
             /*graphics.pose().pushPose();
-            graphics.pose().translate(0, displacement, 0);
+            graphics.pose().translate(indent, displacement, 0);
             *///?}
         }
     }
@@ -97,7 +99,7 @@ public final class ChatAnimator {
         }
     }
 
-    private static float chatDisplacement(ChatComponent chatHud) {
+    public static float chatDisplacement(ChatComponent chatHud) {
         if (!ChatLookup.isAnimationEnabled()) {
             return 0;
         }

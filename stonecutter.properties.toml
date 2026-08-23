@@ -1,5 +1,5 @@
 mod.id = "chatlookup"
-mod.version = "1.1.0"
+mod.version = "1.2.0"
 # Minimum Java version (26.1+ requires Java 25)
 mod.java = "21"
 

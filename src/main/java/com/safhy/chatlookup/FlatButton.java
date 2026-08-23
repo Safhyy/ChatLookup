@@ -67,7 +67,11 @@ public class FlatButton extends AbstractWidget {
         int background;
         int border;
         int labelColor;
-        if (this.accent) {
+        if (!this.active) {
+            background = 0xDC0E0E12;
+            border = 0xFF313138;
+            labelColor = 0xFF5A5A64;
+        } else if (this.accent) {
             background = this.isHovered() ? 0xF03A3008 : 0xF02A2306;
             border = WidgetSkin.ACCENT;
             labelColor = 0xFFFFDE5C;

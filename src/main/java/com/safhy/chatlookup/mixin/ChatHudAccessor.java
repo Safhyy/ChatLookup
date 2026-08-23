@@ -23,6 +23,9 @@ public interface ChatHudAccessor {
     @Accessor("chatScrollbarPos")
     int chatlookup$getScrolledLines();
 
+    @Accessor("chatScrollbarPos")
+    void chatlookup$setScrolledLines(int lines);
+
     @Invoker("rescaleChat")
     void chatlookup$refresh();
 

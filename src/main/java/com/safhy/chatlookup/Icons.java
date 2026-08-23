@@ -38,6 +38,54 @@ public final class Icons {
             "##..##",
     };
 
+    public static final String[] INVERT = {
+            "..###..",
+            ".##..#.",
+            "###...#",
+            "###...#",
+            "###...#",
+            ".##..#.",
+            "..###..",
+    };
+
+    public static final String[] JUMP = {
+            "..#..",
+            ".###.",
+            "#####",
+            ".....",
+            "#####",
+            ".###.",
+            "..#..",
+    };
+
+    public static final String[] PLUS = {
+            "..#..",
+            "..#..",
+            "#####",
+            "..#..",
+            "..#..",
+    };
+
+    public static final String[] CLOSE = {
+            "#.....#",
+            "##...##",
+            ".##.##.",
+            "..###..",
+            ".##.##.",
+            "##...##",
+            "#.....#",
+    };
+
+    public static final String[] SOUND = {
+            "....##",
+            "..####",
+            "###..#",
+            "###..#",
+            "###.#.",
+            "####..",
+            ".##...",
+    };
+
     public static final String[] CHECK = {
             ".......#",
             "......##",

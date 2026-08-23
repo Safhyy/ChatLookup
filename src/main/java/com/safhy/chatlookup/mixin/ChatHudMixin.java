@@ -7,6 +7,7 @@ import com.safhy.chatlookup.ChatAnimator;
 import com.safhy.chatlookup.ChatHeads;
 import com.safhy.chatlookup.ChatHistoryStore;
 import com.safhy.chatlookup.ChatLookup;
+import com.safhy.chatlookup.JumpFlash;
 import com.safhy.chatlookup.MessageDecorator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -48,6 +49,7 @@ public abstract class ChatHudMixin {
             ci.cancel();
             return;
         }
+        this.chatlookup$pinnedToTop = this.chatlookup$isScrolledToTop();
         ChatHeads.beginLines(message);
         if (!MessageDecorator.isRefreshing() && !MessageDecorator.isApplyingStack()) {
             ChatAnimator.beginMessageAdd();
@@ -56,8 +58,32 @@ public abstract class ChatHudMixin {
 
     @Inject(method = "addMessageToDisplayQueue", at = @At("RETURN"))
     private void chatlookup$endLineContext(GuiMessage message, CallbackInfo ci) {
+        if (this.chatlookup$pinnedToTop) {
+            this.chatlookup$pinnedToTop = false;
+            ChatHudAccessor hud = (ChatHudAccessor) this;
+            int top = hud.chatlookup$getVisibleMessages().size()
+                    - ((ChatComponent) (Object) this).getLinesPerPage();
+            if (top > hud.chatlookup$getScrolledLines()) {
+                hud.chatlookup$setScrolledLines(top);
+            }
+        }
         ChatHeads.endLines();
         ChatAnimator.endMessageAdd();
+    }
+
+    @Unique
+    private boolean chatlookup$pinnedToTop;
+
+    @Unique
+    private boolean chatlookup$isScrolledToTop() {
+        ChatComponent chat = (ChatComponent) (Object) this;
+        if (!chat.isChatFocused()) {
+            return false;
+        }
+        ChatHudAccessor hud = (ChatHudAccessor) this;
+        int scrolled = hud.chatlookup$getScrolledLines();
+        return scrolled > 0
+                && scrolled >= hud.chatlookup$getVisibleMessages().size() - chat.getLinesPerPage();
     }
 
     @Inject(method = "addMessageToQueue", at = @At("HEAD"), cancellable = true)
@@ -76,6 +102,7 @@ public abstract class ChatHudMixin {
     @Inject(method = "addMessageToQueue", at = @At("TAIL"))
     private void chatlookup$persistMessage(GuiMessage message, CallbackInfo ci) {
         ChatHistoryStore.append(message.content());
+        ChatLookup.trimHistory((ChatComponent) (Object) this);
     }
 
     //? if >=26.1 {
@@ -137,7 +164,8 @@ public abstract class ChatHudMixin {
                 messages.add(ChatHistoryStore.restoredLine(line.content()));
             }
             this.chatlookup$survivors = null;
-            ChatLookup.budgetedRefresh((ChatComponent) (Object) this);
+            ChatLookup.trimHistory((ChatComponent) (Object) this);
+            ChatLookup.budgetedRefresh((ChatComponent) (Object) this, false);
         } else {
             ChatHistoryStore.clearFile();
             ChatLookup.markCountsDirty();
@@ -145,13 +173,23 @@ public abstract class ChatHudMixin {
     }
 
     @ModifyConstant(
-            method = {"addMessageToQueue", "addMessageToDisplayQueue"},
+            method = "addMessageToQueue",
             constant = @Constant(intValue = 100),
             require = 0,
             expect = 0
     )
     private int chatlookup$raiseHistoryLimit(int vanillaLimit) {
-        return Math.max(vanillaLimit, ChatLookup.HISTORY_LIMIT);
+        return ChatLookup.HISTORY_LIMIT;
+    }
+
+    @ModifyConstant(
+            method = "addMessageToDisplayQueue",
+            constant = @Constant(intValue = 100),
+            require = 0,
+            expect = 0
+    )
+    private int chatlookup$raiseLineLimit(int vanillaLimit) {
+        return ChatLookup.LINE_LIMIT;
     }
 
     //? if >=26.1 {
@@ -166,7 +204,11 @@ public abstract class ChatHudMixin {
     /*@Inject(method = "render", at = @At("HEAD"))
     private void chatlookup$pushChatAnimation(CallbackInfo ci, @Local(argsOnly = true) GuiGraphics graphics) {
     *///?}
-        ChatAnimator.pushChatPose(graphics, (ChatComponent) (Object) this);
+        ChatComponent chatHud = (ChatComponent) (Object) this;
+        if (chatHud.isChatFocused()) {
+            ChatLookup.loadMoreIfAtTop(chatHud);
+        }
+        ChatAnimator.pushChatPose(graphics, chatHud);
     }
 
     //? if >=26.1 {
@@ -181,6 +223,7 @@ public abstract class ChatHudMixin {
     /*@Inject(method = "render", at = @At("RETURN"))
     private void chatlookup$popChatAnimation(CallbackInfo ci, @Local(argsOnly = true) GuiGraphics graphics) {
     *///?}
+        JumpFlash.render(graphics, (ChatComponent) (Object) this, Minecraft.getInstance());
         ChatHeads.render(graphics, (ChatComponent) (Object) this, Minecraft.getInstance());
         ChatAnimator.popChatPose(graphics);
     }

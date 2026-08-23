@@ -56,24 +56,33 @@ public final class HighlightRenderer {
         double spacing = minecraft.options.chatLineSpacing().get();
         int textOffset = (int) Math.round(8.0 * (spacing + 1.0) - 4.0 * spacing);
 
+        float indent = 4.0F + JumpToContext.contentShift();
+        float slide = ChatAnimator.chatDisplacement(chatHud);
         //? if >=1.21.6 {
         Matrix3x2fStack matrices = context.pose();
         matrices.pushMatrix();
+        matrices.translate(0.0F, slide);
         matrices.scale(scale, scale);
-        matrices.translate(4.0F, 0.0F);
+        matrices.translate(indent, 0.0F);
         //?} else {
         /*PoseStack matrices = context.pose();
         matrices.pushPose();
+        matrices.translate(0.0F, slide, 0.0F);
         matrices.scale(scale, scale, 1.0F);
-        matrices.translate(4.0F, 0.0F, 0.0F);
+        matrices.translate(indent, 0.0F, 0.0F);
         *///?}
-        int highlightColor = HIGHLIGHT_ALPHA | ChatLookup.getHighlightColor();
+        int rgb = ChatLookup.getHighlightColor();
         for (int slot = 0; slot < onScreen; slot++) {
             GuiMessage.Line line = visible.get(slot + scrolled);
             int[] ranges = pixelRanges(line, font);
             if (ranges.length == 0) {
                 continue;
             }
+            int alpha = (int) ((HIGHLIGHT_ALPHA >>> 24) * ChatAnimator.easeLineOpacity(1.0, line));
+            if (alpha <= 2) {
+                continue;
+            }
+            int highlightColor = (alpha << 24) | rgb;
             int top = chatBottom - slot * lineHeight - textOffset;
             for (int i = 0; i < ranges.length; i += 2) {
                 context.fill(ranges[i], top - 1, ranges[i + 1] + 1, top + 9, highlightColor);

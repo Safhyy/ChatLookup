@@ -3,9 +3,11 @@
   "package": "com.safhy.chatlookup.mixin",
   "compatibilityLevel": "JAVA_${java}",
   "client": [
+    "ChatHeightMixin",
     "ChatHudAccessor",
     "ChatHudMixin",
     "ChatScreenMixin",
+    "EditBoxAccessor",
     "GuiMessageLineMixin",
     "InGameHudMixin",
     "MinecraftMixin"

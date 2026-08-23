@@ -80,10 +80,10 @@ public final class MessageDecorator {
         if (refreshing || applying) {
             return false;
         }
-        Component recolored = MentionDetector.process(incoming.content());
-        boolean mentioned = recolored != incoming.content();
+        Component styled = MentionDetector.process(WordHighlighter.process(incoming.content()));
+        boolean mentioned = styled != incoming.content();
         if (mentioned) {
-            incoming = withContent(incoming, recolored);
+            incoming = withContent(incoming, styled);
         }
 
         List<GuiMessage> messages = ((ChatHudAccessor) chatHud).chatlookup$getMessages();

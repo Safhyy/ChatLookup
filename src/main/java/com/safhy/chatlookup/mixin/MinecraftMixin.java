@@ -2,6 +2,8 @@ package com.safhy.chatlookup.mixin;
 
 import com.safhy.chatlookup.ChatHistoryStore;
 import com.safhy.chatlookup.ChatLookup;
+import com.safhy.chatlookup.CommandMacros;
+import com.safhy.chatlookup.UpdateChecker;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,5 +16,11 @@ public abstract class MinecraftMixin {
     private void chatlookup$restoreHistory(CallbackInfo ci) {
         Minecraft minecraft = (Minecraft) (Object) this;
         ChatHistoryStore.restoreInto(ChatLookup.getChat(minecraft));
+    }
+
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void chatlookup$tickClient(CallbackInfo ci) {
+        CommandMacros.tick((Minecraft) (Object) this);
+        UpdateChecker.tick((Minecraft) (Object) this);
     }
 }

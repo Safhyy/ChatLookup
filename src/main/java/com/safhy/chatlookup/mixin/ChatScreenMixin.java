@@ -6,9 +6,12 @@ import com.safhy.chatlookup.ChatAnimator;
 import com.safhy.chatlookup.ChatLookup;
 import com.safhy.chatlookup.ChatLookupSettingsScreen;
 import com.safhy.chatlookup.ChatMessageCopier;
+import com.safhy.chatlookup.ChatScrollbarWidget;
 import com.safhy.chatlookup.FlatButton;
 import com.safhy.chatlookup.HighlightRenderer;
 import com.safhy.chatlookup.Icons;
+import com.safhy.chatlookup.JumpToContext;
+import com.safhy.chatlookup.MathPreview;
 import com.safhy.chatlookup.SearchFieldWidget;
 import com.safhy.chatlookup.ToggleButton;
 import com.safhy.chatlookup.WidgetSkin;
@@ -22,12 +25,14 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 //?} else {
 /*import net.minecraft.client.gui.GuiGraphics;
 *///?}
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -53,6 +58,8 @@ public abstract class ChatScreenMixin extends Screen {
     @Unique
     private FlatButton chatlookup$settingsButton;
     @Unique
+    private ChatScrollbarWidget chatlookup$scrollbar;
+    @Unique
     private GuiEventListener chatlookup$focusBeforeClick;
 
     protected ChatScreenMixin(Component title) {
@@ -75,7 +82,16 @@ public abstract class ChatScreenMixin extends Screen {
         ToggleButton regexButton = new ToggleButton(field.getX() + field.getWidth() + 4, buttonY,
                 Component.literal(".*"), Component.translatable("chatlookup.regex.tooltip"), false,
                 ChatLookup::isRegexMode, () -> ChatLookup.setRegexMode(!ChatLookup.isRegexMode()));
-        ToggleButton highlightButton = new ToggleButton(regexButton.getX() + ToggleButton.SIZE + 4, buttonY,
+        int nextX = regexButton.getX() + ToggleButton.SIZE + 4;
+        ToggleButton invertButton = null;
+        if (ChatLookup.isInvertButtonVisible()) {
+            invertButton = new ToggleButton(nextX, buttonY,
+                    Icons.INVERT, Component.translatable("chatlookup.invert.tooltip"),
+                    Component.translatable("chatlookup.invert.tooltip"), false,
+                    ChatLookup::isInvertSearch, () -> ChatLookup.setInvertSearch(!ChatLookup.isInvertSearch()));
+            nextX += ToggleButton.SIZE + 4;
+        }
+        ToggleButton highlightButton = new ToggleButton(nextX, buttonY,
                 Icons.HIGHLIGHT, Component.translatable("chatlookup.highlight.tooltip"),
                 Component.translatable("chatlookup.highlight.tooltip"), true,
                 ChatLookup::isHighlightEnabled, () -> ChatLookup.setHighlightEnabled(!ChatLookup.isHighlightEnabled()));
@@ -91,8 +107,17 @@ public abstract class ChatScreenMixin extends Screen {
                 });
         this.chatlookup$settingsButton = settingsButton;
         this.addRenderableWidget(regexButton);
+        if (invertButton != null) {
+            this.addRenderableWidget(invertButton);
+        }
         this.addRenderableWidget(highlightButton);
         this.addRenderableWidget(settingsButton);
+
+        if (this.minecraft != null) {
+            ChatScrollbarWidget scrollbar = new ChatScrollbarWidget(this.minecraft, () -> this.setFocused(this.input));
+            this.chatlookup$scrollbar = scrollbar;
+            this.addRenderableWidget(scrollbar);
+        }
     }
 
     //? if >=26.1 {
@@ -105,6 +130,7 @@ public abstract class ChatScreenMixin extends Screen {
         if (this.minecraft == null) {
             return;
         }
+        ChatLookup.tickPendingRefresh();
         EditBox field = this.chatlookup$searchField;
         if (field != null) {
             int counterX = this.chatlookup$settingsButton != null
@@ -128,10 +154,19 @@ public abstract class ChatScreenMixin extends Screen {
                 if (ChatLookup.isHighlightEnabled()) {
                     HighlightRenderer.render(context, this.font, this.minecraft, this.height);
                 }
+                JumpToContext.render(context, this.minecraft, this.height, mouseX, mouseY);
             } else {
                 field.setTextColor(EditBox.DEFAULT_TEXT_COLOR);
             }
         }
+
+        ChatMessageCopier.renderAnchor(context, this.minecraft, this.height);
+        MathPreview.render(context, this.font, this.width, this.input,
+                field != null ? field.getY() : this.input.getY());
+        if (this.chatlookup$scrollbar != null) {
+            this.chatlookup$scrollbar.updateBounds();
+        }
+        ChatMessageCopier.renderHint(context, this.minecraft, this.font, mouseX, mouseY, this.height);
     }
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
@@ -143,6 +178,11 @@ public abstract class ChatScreenMixin extends Screen {
         int key = keyCode;
     *///?}
         EditBox field = this.chatlookup$searchField;
+        if (key == GLFW.GLFW_KEY_TAB && (field == null || !field.isFocused())
+                && MathPreview.applyResult(this.input)) {
+            cir.setReturnValue(true);
+            return;
+        }
         if (field == null || !field.isFocused()) {
             return;
         }
@@ -169,22 +209,32 @@ public abstract class ChatScreenMixin extends Screen {
     //? if >=1.21.9 {
     private void chatlookup$copyOnCtrlClick(MouseButtonEvent click, boolean doubled, CallbackInfoReturnable<Boolean> cir) {
         this.chatlookup$focusBeforeClick = this.getFocused();
-        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT && click.hasControlDownWithQuirk() && this.minecraft != null
-                && ChatMessageCopier.copyMessageAt(this.minecraft, click.x(), click.y(),
-                        this.minecraft.getWindow().getGuiScaledHeight())) {
-            cir.setReturnValue(true);
+        if (this.minecraft == null || click.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            return;
         }
-    }
+        double mouseX = click.x();
+        double mouseY = click.y();
+        boolean control = click.hasControlDownWithQuirk();
+        boolean extend = click.hasShiftDown();
     //?} else {
     /*private void chatlookup$copyOnCtrlClick(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
         this.chatlookup$focusBeforeClick = this.getFocused();
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && Screen.hasControlDown() && this.minecraft != null
-                && ChatMessageCopier.copyMessageAt(this.minecraft, mouseX, mouseY,
-                        this.minecraft.getWindow().getGuiScaledHeight())) {
+        if (this.minecraft == null || button != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            return;
+        }
+        boolean control = Screen.hasControlDown();
+        boolean extend = Screen.hasShiftDown();
+    *///?}
+        int windowHeight = this.minecraft.getWindow().getGuiScaledHeight();
+        if (!control && JumpToContext.click(this.minecraft, mouseX, mouseY, windowHeight,
+                this.chatlookup$searchField)) {
+            cir.setReturnValue(true);
+            return;
+        }
+        if (control && ChatMessageCopier.copyMessageAt(this.minecraft, mouseX, mouseY, windowHeight, extend)) {
             cir.setReturnValue(true);
         }
     }
-    *///?}
 
     @Inject(method = "mouseClicked", at = @At("RETURN"))
     //? if >=1.21.9 {
@@ -206,6 +256,8 @@ public abstract class ChatScreenMixin extends Screen {
     @Inject(method = "removed", at = @At("TAIL"))
     private void chatlookup$clearFilterOnClose(CallbackInfo ci) {
         ChatLookup.setQuery("");
+        ChatLookup.flushPendingRefresh();
+        ChatMessageCopier.clearAnchor();
         ChatAnimator.onChatScreenClosed();
     }
 
@@ -240,6 +292,17 @@ public abstract class ChatScreenMixin extends Screen {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/EditBox;render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"))
     private void chatlookup$animateInput(EditBox input, GuiGraphics graphics, int mouseX, int mouseY, float delta, Operation<Void> original) {
         ChatAnimator.wrapField(graphics, this.minecraft, () -> original.call(input, graphics, mouseX, mouseY, delta));
+    }
+
+    @WrapOperation(method = "render",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;renderComponentHoverEffect(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Style;II)V"))
+    private void chatlookup$hideHoverWhileCopying(GuiGraphics graphics, Font font, Style style, int mouseX, int mouseY,
+                                                  Operation<Void> original) {
+        if (this.minecraft != null && ChatMessageCopier.isHintVisible(this.minecraft, mouseX, mouseY,
+                this.minecraft.getWindow().getGuiScaledHeight())) {
+            return;
+        }
+        original.call(graphics, font, style, mouseX, mouseY);
     }
     *///?}
 }

@@ -54,6 +54,9 @@ public final class MentionDetector {
         if (ChatLookup.isMentionSoundEnabled()) {
             minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f));
         }
+        if (!ChatLookup.isMentionHighlightEnabled()) {
+            return content;
+        }
         return recolor(content, ranges);
     }
 

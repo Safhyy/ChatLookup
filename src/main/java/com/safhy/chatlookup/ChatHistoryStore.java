@@ -68,6 +68,7 @@ public final class ChatHistoryStore {
             for (int i = history.size() - 1; i >= 0; i--) {
                 messages.add(restoredLine(history.get(i)));
             }
+            ChatLookup.trimHistory(chatHud);
             ChatLookup.budgetedRefresh(chatHud);
             LOGGER.info("[ChatLookup] Restored {} chat messages from the previous session", history.size());
         } catch (Throwable t) {

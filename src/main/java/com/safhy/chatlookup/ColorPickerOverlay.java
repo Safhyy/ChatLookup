@@ -169,12 +169,20 @@ public class ColorPickerOverlay extends AbstractWidget {
             return;
         }
         String hex = text.startsWith("#") ? text.substring(1) : text;
+        hex = hex.trim().toLowerCase(Locale.ROOT);
+        if (hex.length() == 3) {
+            StringBuilder expanded = new StringBuilder(6);
+            for (int i = 0; i < 3; i++) {
+                expanded.append(hex.charAt(i)).append(hex.charAt(i));
+            }
+            hex = expanded.toString();
+        }
         if (hex.length() != 6) {
             return;
         }
         int rgb;
         try {
-            rgb = Integer.parseInt(hex.toLowerCase(Locale.ROOT), 16);
+            rgb = Integer.parseInt(hex, 16);
         } catch (NumberFormatException e) {
             return;
         }
@@ -188,6 +196,11 @@ public class ColorPickerOverlay extends AbstractWidget {
 
     public boolean isOverHexField(double mx, double my) {
         return inRect(mx, my, hexX(), bottomRowY(), HEX_W, BTN);
+    }
+
+    @Override
+    public boolean isMouseOver(double mx, double my) {
+        return this.visible && !isOverHexField(mx, my) && super.isMouseOver(mx, my);
     }
 
     @Override
