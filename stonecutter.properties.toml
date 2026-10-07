@@ -37,3 +37,9 @@ deps.modmenu = "20.0.1"
 mod.mc_compat = "26.2"
 mod.mc_releases = ["26.2"]
 mod.java = "25"
+
+["26.3"]
+deps.modmenu = "21.0.0"
+mod.mc_compat = "26.3"
+mod.mc_releases = ["26.3"]
+mod.java = "25"

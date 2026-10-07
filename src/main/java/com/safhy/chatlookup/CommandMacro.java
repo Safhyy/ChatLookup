@@ -37,6 +37,10 @@ public final class CommandMacro {
         if (!isBound()) {
             return Component.literal("None");
         }
-        return InputConstants.Type.KEYSYM.getOrCreate(this.key).getDisplayName();
+        //? if >=26.3 {
+        return InputConstants.Type.KEYBOARD.getOrCreate(this.key).getDisplayName();
+        //?} else {
+        /*return InputConstants.Type.KEYSYM.getOrCreate(this.key).getDisplayName();
+        *///?}
     }
 }

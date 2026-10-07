@@ -1,5 +1,6 @@
 package com.safhy.chatlookup;
 
+import com.mojang.blaze3d.platform.InputConstants;
 //? if >=1.21.9 {
 import net.minecraft.client.input.KeyEvent;
 //?}
@@ -13,7 +14,6 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -213,7 +213,7 @@ public class HighlightRulesScreen extends Screen {
     /*public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         int key = keyCode;
     *///?}
-        if (key == GLFW.GLFW_KEY_ESCAPE && this.picker != null && this.picker.isOpen()) {
+        if (key == InputConstants.KEY_ESCAPE && this.picker != null && this.picker.isOpen()) {
             this.picker.close();
             return true;
         }

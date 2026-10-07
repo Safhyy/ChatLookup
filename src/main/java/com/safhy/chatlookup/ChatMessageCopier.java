@@ -26,7 +26,6 @@ import net.minecraft.client.multiplayer.chat.GuiMessage;
 *///?}
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
-import org.lwjgl.glfw.GLFW;
 //? if >=1.21.6 {
 import org.joml.Matrix3x2fStack;
 //?} else {
@@ -217,11 +216,16 @@ public final class ChatMessageCopier {
 
     private static boolean copyModifierDown(Minecraft minecraft) {
         //? if >=1.21.9 {
-        if (keyDown(minecraft, GLFW.GLFW_KEY_LEFT_CONTROL) || keyDown(minecraft, GLFW.GLFW_KEY_RIGHT_CONTROL)) {
+        if (keyDown(minecraft, InputConstants.KEY_LCONTROL) || keyDown(minecraft, InputConstants.KEY_RCONTROL)) {
             return true;
         }
+        //? if >=26.3 {
         return InputQuirks.REPLACE_CTRL_KEY_WITH_CMD_KEY
-                && (keyDown(minecraft, GLFW.GLFW_KEY_LEFT_SUPER) || keyDown(minecraft, GLFW.GLFW_KEY_RIGHT_SUPER));
+                && (keyDown(minecraft, InputConstants.KEY_LGUI) || keyDown(minecraft, InputConstants.KEY_RGUI));
+        //?} else {
+        /*return InputQuirks.REPLACE_CTRL_KEY_WITH_CMD_KEY
+                && (keyDown(minecraft, InputConstants.KEY_LSUPER) || keyDown(minecraft, InputConstants.KEY_RSUPER));
+        *///?}
         //?} else {
         /*return Screen.hasControlDown();
         *///?}
@@ -229,7 +233,11 @@ public final class ChatMessageCopier {
 
     //? if >=1.21.9 {
     private static boolean keyDown(Minecraft minecraft, int key) {
-        return InputConstants.isKeyDown(minecraft.getWindow(), key);
+        //? if >=26.3 {
+        return InputConstants.isKeyDown(key);
+        //?} else {
+        /*return InputConstants.isKeyDown(minecraft.getWindow(), key);
+        *///?}
     }
     //?}
 

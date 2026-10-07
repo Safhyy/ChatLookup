@@ -1,5 +1,6 @@
 package com.safhy.chatlookup;
 
+import com.mojang.blaze3d.platform.InputConstants;
 //? if >=1.21.9 {
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -19,7 +20,6 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.FocusNavigationEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -426,7 +426,7 @@ public class ChatLookupSettingsScreen extends Screen {
     /*public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         int key = keyCode;
     *///?}
-        if (key == GLFW.GLFW_KEY_ESCAPE && this.picker != null && this.picker.isOpen()) {
+        if (key == InputConstants.KEY_ESCAPE && this.picker != null && this.picker.isOpen()) {
             this.picker.close();
             return true;
         }

@@ -1,5 +1,6 @@
 package com.safhy.chatlookup;
 
+import com.mojang.blaze3d.platform.InputConstants;
 //? if >=1.21.9 {
 import net.minecraft.client.input.KeyEvent;
 //?}
@@ -13,7 +14,6 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -164,7 +164,7 @@ public class CommandMacrosScreen extends Screen {
         int key = keyCode;
     *///?}
         if (this.listening != null) {
-            this.listening.setKey(key == GLFW.GLFW_KEY_ESCAPE ? CommandMacro.UNBOUND : key);
+            this.listening.setKey(key == InputConstants.KEY_ESCAPE ? CommandMacro.UNBOUND : key);
             this.listening = null;
             CommandMacros.save();
             this.rebuildWidgets();

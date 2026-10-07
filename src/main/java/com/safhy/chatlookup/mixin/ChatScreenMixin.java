@@ -2,6 +2,7 @@ package com.safhy.chatlookup.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.safhy.chatlookup.ChatAnimator;
 import com.safhy.chatlookup.ChatLookup;
 import com.safhy.chatlookup.ChatLookupSettingsScreen;
@@ -33,7 +34,6 @@ import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -177,7 +177,7 @@ public abstract class ChatScreenMixin extends Screen {
         int key = keyCode;
     *///?}
         EditBox field = this.chatlookup$searchField;
-        if (key == GLFW.GLFW_KEY_TAB && (field == null || !field.isFocused())
+        if (key == InputConstants.KEY_TAB && (field == null || !field.isFocused())
                 && MathPreview.applyResult(this.input)) {
             cir.setReturnValue(true);
             return;
@@ -186,12 +186,12 @@ public abstract class ChatScreenMixin extends Screen {
             return;
         }
         switch (key) {
-            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
+            case InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER -> {
                 this.setFocused(this.input);
                 cir.setReturnValue(true);
             }
-            case GLFW.GLFW_KEY_UP, GLFW.GLFW_KEY_DOWN -> cir.setReturnValue(true);
-            case GLFW.GLFW_KEY_ESCAPE -> {
+            case InputConstants.KEY_UP, InputConstants.KEY_DOWN -> cir.setReturnValue(true);
+            case InputConstants.KEY_ESCAPE -> {
                 if (!field.getValue().isEmpty()) {
                     field.setValue("");
                 } else {
@@ -208,7 +208,7 @@ public abstract class ChatScreenMixin extends Screen {
     //? if >=1.21.9 {
     private void chatlookup$copyOnCtrlClick(MouseButtonEvent click, boolean doubled, CallbackInfoReturnable<Boolean> cir) {
         this.chatlookup$focusBeforeClick = this.getFocused();
-        if (this.minecraft == null || click.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (this.minecraft == null || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return;
         }
         double mouseX = click.x();
@@ -218,7 +218,7 @@ public abstract class ChatScreenMixin extends Screen {
     //?} else {
     /*private void chatlookup$copyOnCtrlClick(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
         this.chatlookup$focusBeforeClick = this.getFocused();
-        if (this.minecraft == null || button != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (this.minecraft == null || button != InputConstants.MOUSE_BUTTON_LEFT) {
             return;
         }
         boolean control = Screen.hasControlDown();

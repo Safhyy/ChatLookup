@@ -69,9 +69,11 @@ public final class CommandMacros {
     }
 
     private static boolean isKeyDown(Minecraft minecraft, int key) {
-        //? if >=1.21.9 {
-        return InputConstants.isKeyDown(minecraft.getWindow(), key);
-        //?} else {
+        //? if >=26.3 {
+        return InputConstants.isKeyDown(key);
+        //?} else if >=1.21.9 {
+        /*return InputConstants.isKeyDown(minecraft.getWindow(), key);
+        *///?} else {
         /*return InputConstants.isKeyDown(minecraft.getWindow().getWindow(), key);
         *///?}
     }
@@ -113,7 +115,12 @@ public final class CommandMacros {
                 JsonObject object = element.getAsJsonObject();
                 CommandMacro macro = new CommandMacro();
                 macro.setCommand(string(object, "command"));
-                macro.setKey(key(object));
+                //? if >=26.3 {
+                int scancode = scancode(string(object, "name"));
+                macro.setKey(scancode != CommandMacro.UNBOUND ? scancode : scancode(LegacyKeyCodes.name(key(object))));
+                //?} else {
+                /*macro.setKey(key(object));
+                *///?}
                 MACROS.add(macro);
             }
         } catch (Exception e) {
@@ -129,7 +136,17 @@ public final class CommandMacros {
             }
             JsonObject object = new JsonObject();
             object.addProperty("command", macro.command());
-            object.addProperty("key", macro.key());
+            //? if >=26.3 {
+            if (macro.isBound()) {
+                String name = InputConstants.Type.KEYBOARD.getOrCreate(macro.key()).getName();
+                object.addProperty("key", LegacyKeyCodes.code(name));
+                object.addProperty("name", name);
+            } else {
+                object.addProperty("key", CommandMacro.UNBOUND);
+            }
+            //?} else {
+            /*object.addProperty("key", macro.key());
+            *///?}
             array.add(object);
         }
         try {
@@ -158,6 +175,23 @@ public final class CommandMacros {
             return CommandMacro.UNBOUND;
         }
     }
+
+    //? if >=26.3 {
+    private static int scancode(String name) {
+        if (name == null || name.isEmpty()) {
+            return CommandMacro.UNBOUND;
+        }
+        try {
+            InputConstants.Key key = InputConstants.getKey(name);
+            if (key.getType() != InputConstants.Type.KEYBOARD || key.equals(InputConstants.UNKNOWN)) {
+                return CommandMacro.UNBOUND;
+            }
+            return key.getValue();
+        } catch (IllegalArgumentException e) {
+            return CommandMacro.UNBOUND;
+        }
+    }
+    //?}
 
     private CommandMacros() {
     }
